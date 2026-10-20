@@ -1,0 +1,42 @@
+name: Release
+
+# A tag `v<version>` builds every package and puts them in a draft release (nothing is published before the draft
+# is published by hand). <version> is the version in src-tauri/Cargo.toml, the only place the version is written.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: The tag is the version of the program
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 --manifest-path src-tauri/Cargo.toml \
+            | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).packages[0].version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "The tag is $GITHUB_REF_NAME but src-tauri/Cargo.toml says version $version." >&2
+            exit 1
+          fi
+
+      # The Linux executable and .deb, the Windows installer and portable zip, and the types package of the add-ons
+      # (addon-api/, a .tgz), all into out/ (scripts/package.mjs).
+      - run: npm run package
+
+      - name: Checksums
+        run: |
+          cd out
+          sha256sum * > ../SHA256SUMS.txt
+
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" out/* SHA256SUMS.txt --draft --title "$GITHUB_REF_NAME" --generate-notes
