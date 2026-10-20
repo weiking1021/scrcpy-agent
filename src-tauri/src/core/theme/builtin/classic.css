@@ -1,0 +1,93 @@
+/* Classic: a flat grey desktop of the 1990s, with raised buttons, sunken fields and a title bar. */
+:root {
+  --bg: #c0c0c0;
+  --surface: #c0c0c0;
+  --text: #000000;
+  --muted: #404040;
+  --border: #808080;
+  --accent: #000080;
+  --accent-text: #ffffff;
+  --accent-soft: #b4b8ff;
+  --ok: #006400;
+  --warn: #8a4b00;
+  --bad: #b00000;
+  --info: #404040;
+  --open-screen-text: #ffffff;
+  --backdrop: rgba(0, 0, 0, 0.35);
+  --state-online: #00c000;
+  --state-unauthorized: #ffc000;
+  --state-offline: #e00000;
+  --state-discovered: #ffffff;
+  --state-disconnected: #808080;
+
+  --radius-lg: 0;
+  --radius-md: 0;
+  --radius-sm: 0;
+  --radius-pill: 0;
+  --border-width: 2px;
+
+  --toast-shadow: 2px 2px 0 #000000;
+  --popup-shadow: 2px 2px 0 #000000;
+  --drop-shadow: 2px 2px 0 #000000;
+
+  --font: Tahoma, "MS Sans Serif", "Noto Sans", "Noto Sans CJK TC", sans-serif;
+  --font-size: 14px;
+  --line-height: 1.35;
+  --heading-transform: none;
+  --heading-spacing: 0;
+}
+
+/* Raised things, and sunken ones. */
+/* The entries of the sidebar get their bevel from shadows inside them, not from a frame: a frame would
+   take room, and the folded sidebar has none to spare. */
+.nav-item { border-width: 0; box-shadow: inset -1px -1px #404040, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; }
+button,
+.popup-menu,
+.toast {
+  border-style: solid;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf;
+}
+button:active:not(:disabled) {
+  border-color: #404040 #ffffff #ffffff #404040;
+  box-shadow: inset 1px 1px #808080;
+  filter: none;
+  transform: none;
+}
+button:hover:not(:disabled) { border-color: #ffffff #404040 #404040 #ffffff; }
+button.primary { border-color: #ffffff #404040 #404040 #ffffff; font-weight: 700; }
+.card,
+.panel,
+.group-body,
+.transfer-list,
+dialog {
+  border-style: solid;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf;
+}
+input, select, textarea, .console-lines, .segmented {
+  background: #ffffff;
+  border-style: solid;
+  border-color: #404040 #ffffff #ffffff #404040;
+  box-shadow: inset 1px 1px #808080;
+}
+input[type="checkbox"][role="switch"]:checked { background: var(--accent); }
+/* The frame is 2px here: the knob is made to fit what is inside it (38 by 20). */
+input[type="checkbox"][role="switch"]::before { top: 1px; left: 1px; border-radius: 0; }
+input[type="checkbox"][role="switch"]:checked::before { transform: translateX(18px); }
+.nav-item[aria-current="page"] { background: #000080; color: #ffffff; box-shadow: inset 1px 1px #404040, inset -1px -1px #ffffff, inset 2px 2px #000000; }
+.nav-item:hover:not(:disabled) { background: #d4d0c8; }
+.sidebar { border-right-color: #404040; }
+
+/* The title of a page is a title bar. */
+.page-head {
+  margin: 6px 12px 0;
+  padding: 3px 6px;
+  min-height: 0;
+  color: #ffffff;
+  background: linear-gradient(90deg, #000080, #1084d0);
+}
+.page-head h1 { font-size: 1rem; font-weight: 700; color: #ffffff; }
+.dev-head { border-bottom-color: #404040; }
+.light { border-color: #404040 #ffffff #ffffff #404040; }
+.tabs button { box-shadow: none; border-bottom-width: 3px; }

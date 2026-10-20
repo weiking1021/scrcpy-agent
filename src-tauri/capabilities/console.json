@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "console",
+  "description": "Capability for the debug console window: it reads the log and sets its own title",
+  "windows": ["console"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-title"
+  ]
+}

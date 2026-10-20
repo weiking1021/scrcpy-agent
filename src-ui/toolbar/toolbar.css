@@ -1,0 +1,94 @@
+/* The sizes here are the ones in core/toolbar.rs (bar_size): 56 wide, 44 high
+   per button, 8 of padding in all, and a 20 high grip when the toolbar is a
+   free window. Keep them in step. */
+/* This window does not load the program's stylesheet, but the theme (see theme.ts). The bar is made of the
+   program's own variables, with the dark look as what they are when no theme says otherwise, so a theme
+   that changes the colours (and the roundness, and the font) changes the bar with them. */
+:root {
+  --surface: #1f2226;
+  --border: #3a4048;
+  --accent-soft: #353b43;
+  --accent: #5b9dff;
+  --text: #e6e8eb;
+  --muted: #7d8590;
+  --ok: #55c277;
+  --bad: #ff8a80;
+  --radius-md: 10px;
+  --font: system-ui, "Segoe UI", "Noto Sans", "Noto Sans CJK TC", sans-serif;
+
+  --bar-bg: var(--surface);
+  --bar-border: var(--border);
+  --button-hover: var(--accent-soft);
+  color-scheme: dark;
+  font-family: var(--font);
+}
+:root[data-base="light"] { color-scheme: light; }
+:root[data-base="dark"] { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bar-bg);
+  color: var(--text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#bar {
+  width: 56px;
+  height: 100%;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--bar-border);
+  border-radius: var(--radius-md);
+  background: var(--bar-bg);
+}
+
+.grip {
+  height: 20px;
+  margin: -4px 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+.grip::before {
+  content: "";
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--muted);
+}
+
+#bar button {
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+#bar button:hover:not(:disabled) { background: var(--button-hover); }
+#bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+#bar button:disabled { color: var(--muted); opacity: 0.45; cursor: default; }
+#bar button.sent { color: var(--ok); }
+#bar button.failed { color: var(--bad); }
+
+#bar svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

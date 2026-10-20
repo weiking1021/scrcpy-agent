@@ -1,0 +1,699 @@
+/* Everything in this file is in one layer. A stylesheet that is not in a layer (a theme's) wins
+   over a layer whatever the selectors are, so a theme never has to out-shout this file. */
+@layer program {
+
+/* The variables below are what a theme may change (see docs/theming/THEMING.md); the rest of this
+   file is made of them. `data-base` on the root says what the theme is made for (a theme sets
+   it, see theme.ts): `light`, `dark`, or nothing for the system's own choice. */
+:root {
+  /* Colours. */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --text: #1c1e21;
+  --muted: #5d6470;
+  --border: #d9dce1;
+  --accent: #1a6ed8;
+  --accent-text: #ffffff;
+  --accent-soft: #e6effb;
+  --ok: #1b7f3b;
+  --warn: #a15c00;
+  --bad: #b3261e;
+  --info: #5d6470;
+  --open-screen-text: #ffffff;
+  --backdrop: rgba(0, 0, 0, 0.45);
+
+  /* The light that says the state of a device. */
+  --state-online: var(--ok);
+  --state-unauthorized: var(--warn);
+  --state-offline: var(--bad);
+  --state-discovered: #ffffff;
+  --state-disconnected: var(--muted);
+  --light-size: 12px;
+  --light-radius: 50%;
+
+  /* The shape of things. */
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+  --border-width: 1px;
+
+  /* Depth: nothing by default; a theme may give things a shadow. */
+  --surface-shadow: none;
+  --control-shadow: none;
+  --toast-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --popup-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+  --drop-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+
+  /* Type. */
+  --font: system-ui, "Segoe UI", "Noto Sans", "Noto Sans CJK TC", sans-serif;
+  --font-heading: var(--font);
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-size: 15px;
+  --line-height: 1.5;
+  --heading-transform: uppercase;
+  --heading-spacing: 0.06em;
+
+  /* The page behind everything: a picture, or none. */
+  --bg-image: none;
+
+  /* The sidebar: how wide it is open, and how tall an entry is (folded, it is as wide as what is in it). */
+  --sidebar-width: 220px;
+  --nav-height: 40px;
+
+  color-scheme: light dark;
+  font-family: var(--font);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+}
+
+:root[data-base="light"] { color-scheme: light; }
+:root[data-base="dark"] { color-scheme: dark; }
+
+/* The colours of the dark look: when the theme is made for the dark, or the system is dark and the
+   theme does not say (a theme made for the light keeps the light colours). */
+:root[data-base="dark"] {
+  --bg: #15171a;
+  --surface: #202327;
+  --text: #e6e8eb;
+  --muted: #a3aab5;
+  --border: #353a41;
+  --accent: #5b9dff;
+  --accent-text: #0b1a2e;
+  --accent-soft: #23324a;
+  --ok: #55c277;
+  --warn: #e0a24a;
+  --bad: #ff8a80;
+  --info: #a3aab5;
+  --open-screen-text: #08210f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-base="light"]):not([data-base="dark"]) {
+    --bg: #15171a;
+    --surface: #202327;
+    --text: #e6e8eb;
+    --muted: #a3aab5;
+    --border: #353a41;
+    --accent: #5b9dff;
+    --accent-text: #0b1a2e;
+    --accent-soft: #23324a;
+    --ok: #55c277;
+    --warn: #e0a24a;
+    --bad: #ff8a80;
+    --info: #a3aab5;
+    --open-screen-text: #08210f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image: var(--bg-image);
+  background-size: cover;
+  background-attachment: fixed;
+  color: var(--text);
+}
+h1, h2, h3 { font-family: var(--font-heading); }
+
+button {
+  font: inherit;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--control-shadow);
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+button:disabled { opacity: 0.55; cursor: default; }
+/* The answer to a press: a ripple from the point pressed (see ripple.ts). */
+button { position: relative; overflow: hidden; }
+button.link { overflow: visible; }
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.28;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple 550ms ease-out forwards;
+}
+@keyframes ripple { to { transform: scale(1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ripple { animation-duration: 1ms; } button:active:not(:disabled) { filter: brightness(0.9); } }
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+button.link {
+  border: none;
+  background: none;
+  color: var(--accent);
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  font-size: inherit;
+}
+button.with-icon { display: inline-flex; align-items: center; gap: 6px; }
+button.with-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+input, select, textarea {
+  width: 100%;
+  font: inherit;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+input[type="checkbox"] { width: auto; }
+
+/* ------------------------------------------------------------ the window: sidebar and page */
+
+body.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* Open, the sidebar is as wide as the setting. Folded, it is as wide as what is left in it: the labels are
+   gone, so an icon with the padding and the frame the entries have, whatever a theme makes them, and the
+   icons are in the middle because nothing else is there. No number is worked out. The change between the
+   two is a movement of the width alone, which sidebar.ts makes (it asks the browser how wide the end is,
+   and keeps the labels, cut off at the edge, while the width goes). */
+.sidebar {
+  flex: none;
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 10px;
+  background: var(--surface);
+  border-right: var(--border-width) solid var(--border);
+  /* The texts keep their lines while the width changes; what does not fit yet is cut off. */
+  overflow-x: hidden;
+}
+.sidebar.collapsed { width: auto; }
+.sidebar.collapsed:not(.moving) .brand-name,
+/* (The labels are the spans of an entry, but not the ripple of a press, which is a span too.) */
+.sidebar.collapsed:not(.moving) .nav-item > span:not(.ripple) { display: none; }
+.sidebar.collapsed:not(.moving) .brand { justify-content: center; }
+.sidebar.collapsed:not(.moving) .nav-toggle { margin-left: 0; }
+.brand-name, .nav-item > span:not(.ripple) { white-space: nowrap; }
+.brand-name { flex: 1; min-width: 0; overflow: hidden; }
+.sidebar .status { min-width: 180px; }
+.brand { display: flex; align-items: center; padding: 4px 8px 12px; font-weight: 700; font-size: 1.05rem; }
+.brand-mark { width: 22px; height: 22px; flex: none; margin-right: 10px; border-radius: var(--radius-sm); background: var(--ok); }
+.nav-list { display: flex; flex-direction: column; gap: 4px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  /* A fixed height: the line of a font with Chinese characters is taller than the icon, and
+     the entries would be taller in one language than in the other (or than collapsed). */
+  height: var(--nav-height);
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  text-align: left;
+  white-space: nowrap;
+  /* The text that does not fit while the sidebar is narrow is cut at the edge of the entry. */
+  overflow: hidden;
+}
+.nav-item > span:not(.ripple) { line-height: 1.2; }
+.nav-item:hover:not(:disabled) { background: var(--bg); }
+.nav-item[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.nav-item svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+/* The collapse button is in the top corner: at the right of the name, and alone (in place of the mark) when collapsed. */
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.nav-toggle:hover { background: var(--bg); color: var(--text); }
+.nav-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s ease; }
+.sidebar.collapsed .nav-toggle svg { transform: rotate(180deg); }
+/* Nothing moves except what the shrinking width cuts off: the icons are at the same place in
+   both widths (the collapsed width is what centres them), and the texts are clipped, not hidden
+   first. Only the mark goes at once: the collapse button takes its corner. */
+.sidebar.collapsed .brand-mark,
+.sidebar.collapsed .status { display: none; }
+
+.status { padding: 0 8px; color: var(--muted); font-size: 0.82rem; line-height: 1.4; }
+.status[data-phase="error"] { color: var(--bad); }
+.status progress { display: block; width: 100%; height: 6px; margin-top: 4px; }
+
+.content { flex: 1; min-width: 0; overflow-y: auto; }
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px 8px;
+  /* As tall as with the button, so the title stays on one line from page to page. */
+  min-height: 66px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+}
+.page-head h1 { margin: 0; font-size: 1.4rem; flex: 1; }
+.page-actions { display: flex; gap: 8px; }
+.page-actions button[hidden] { display: none; }
+main { padding: 8px 24px 32px; }
+.page[hidden] { display: none; }
+.page-toolbar { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+.page-toolbar .hint { flex: 1; margin: 0; }
+.empty-note { color: var(--muted); }
+
+/* ------------------------------------------------------------ the list of devices */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* The devices in two groups, each under a title that folds it. */
+.device-groups { display: flex; flex-direction: column; gap: 20px; }
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: var(--heading-spacing);
+  text-transform: var(--heading-transform);
+  cursor: pointer;
+}
+.group-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.group-toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
+.group-toggle[aria-expanded="false"] { margin-bottom: 0; }
+.group-empty { margin: 0 4px; color: var(--muted); font-size: 0.9rem; }
+
+.card {
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--surface-shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card[data-state="disconnected"] { opacity: 0.7; }
+.card-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.card h3 { margin: 0; font-size: 1.1rem; line-height: 1.3; overflow-wrap: anywhere; }
+.serial { margin: 0; color: var(--muted); font-size: 0.82rem; overflow-wrap: anywhere; }
+.address { margin: 0; color: var(--muted); font-size: 0.85rem; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.note { margin: 4px 0 0; color: var(--warn); font-size: 0.85rem; }
+/* The buttons are at the bottom of the card whatever else the card has (a card is as high as the tallest of its row),
+   so the buttons of cards side by side are on one line. The space above them is padding: the margin is the push. */
+.card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; flex-wrap: wrap; align-items: center; }
+.card-actions:empty { display: none; }
+
+/* The green "open screen" button is only an icon; its text is the tooltip. */
+.card-actions button[data-action="details"] { margin-left: auto; }
+.card-actions button.icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 36px; padding: 0; }
+.card-actions button.icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.card-actions button.open-screen { background: var(--ok); border-color: var(--ok); color: var(--open-screen-text); }
+.card-actions button.open-screen:hover:not(:disabled) { border-color: var(--text); }
+
+/* The state of a device as a light (its words are the tooltip); `data-state` says which:
+   green ready, grey known but not found now, orange waiting for the device to agree,
+   red not answering, white found on the network (maybe not the user's). The colours are
+   `--state-*`, so a theme changes them without knowing the rest. */
+.light {
+  flex: none;
+  width: var(--light-size);
+  height: var(--light-size);
+  margin-top: 5px;
+  border-radius: var(--light-radius);
+  border: var(--border-width) solid var(--muted);
+  background: var(--muted);
+}
+.light[data-state="online"] { background: var(--state-online); border-color: var(--state-online); }
+.light[data-state="unauthorized"] { background: var(--state-unauthorized); border-color: var(--state-unauthorized); }
+.light[data-state="offline"] { background: var(--state-offline); border-color: var(--state-offline); }
+.light[data-state="discovered"] { background: var(--state-discovered); border-color: var(--muted); }
+.light[data-state="disconnected"] { background: var(--state-disconnected); border-color: var(--state-disconnected); opacity: 0.6; }
+
+.empty { text-align: center; color: var(--muted); padding: 48px 16px; max-width: 520px; margin: 0 auto; }
+.empty h2 { color: var(--text); }
+
+/* The state at a glance: the battery stands out, the rest is quiet. */
+.status-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-top: 10px; }
+.status-strip:empty { display: none; }
+/* Every chip is the same: an icon and a value, no frame. The colour says how it is (the battery always has one),
+   no colour is neutral. */
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--muted); }
+.chip svg { width: 18px; height: 18px; flex: none; }
+/* The value takes at least the room of "100%", so that "--" or "9%" leaves the same space and the chips after it stay where they are. */
+.chip .value { min-width: 4ch; }
+.chip.primary { font-weight: 600; }
+.chip.ok { color: var(--ok); }
+.chip.warn { color: var(--warn); }
+.chip.bad { color: var(--bad); }
+/* On a card the place of the strip is kept even when nothing is in it, so that what is below does not move when the readings come. */
+.status-strip.compact { gap: 6px 18px; margin-top: 8px; min-height: 22px; }
+.status-strip.compact:empty { display: flex; }
+.status-strip.compact .chip { font-size: 0.9rem; }
+
+/* ------------------------------------------------------------ the settings (the page, and a device's own) */
+
+.settings { max-width: 780px; }
+.saved-state { height: 1.4em; margin: 0 0 4px; color: var(--ok); font-size: 0.85rem; opacity: 0; transition: opacity 0.2s ease; }
+.saved-state.shown { opacity: 1; }
+.group { margin: 0 0 24px; }
+.group h2 { margin: 0 0 8px 4px; font-size: 0.8rem; font-weight: 700; letter-spacing: var(--heading-spacing); text-transform: var(--heading-transform); color: var(--muted); }
+.group-body { background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--surface-shadow); overflow: hidden; }
+.setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 14px 18px;
+}
+.setting + .setting { border-top: var(--border-width) solid var(--border); }
+.setting[hidden] { display: none; }
+.setting.stacked { grid-template-columns: 1fr; }
+.setting-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* A label is only as wide as its text: stretched over the column it would toggle its switch from the empty space beside it. */
+.setting-name { align-self: flex-start; font-size: 0.97rem; font-weight: 500; }
+.setting-hint { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.55; overflow-wrap: anywhere; }
+.setting-hint.mono { font-family: var(--font-mono); }
+.setting-control { min-width: 0; display: flex; justify-content: flex-end; }
+.setting-control.checks { flex-direction: column; align-items: flex-start; gap: 6px; }
+.setting-control .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.setting-control.toolbar-layout-control { flex-direction: column; align-items: stretch; gap: 10px; }
+.toolbar-layout { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; min-width: 280px; }
+.toolbar-layout li { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.toolbar-layout .check { flex: 1; min-width: 0; }
+.toolbar-layout .layout-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.toolbar-layout .layout-move { display: flex; gap: 4px; }
+.toolbar-layout .layout-move button { min-width: 28px; padding: 2px 6px; }
+.setting-control select { width: 280px; max-width: 100%; }
+.setting-control input:not([type="checkbox"]) { width: 280px; max-width: 100%; }
+.setting-control input[type="number"] { width: 120px; }
+.setting.stacked .setting-control { justify-content: stretch; }
+.setting.stacked textarea { width: 100%; }
+@media (max-width: 720px) {
+  .setting { grid-template-columns: 1fr; }
+  .setting-control { justify-content: flex-start; }
+}
+
+/* A switch, for the settings that are on or off. */
+input[type="checkbox"][role="switch"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 42px;
+  height: 24px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  border: var(--border-width) solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+input[type="checkbox"][role="switch"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+input[type="checkbox"][role="switch"]:checked { background: var(--accent); border-color: var(--accent); }
+input[type="checkbox"][role="switch"]:checked::before { transform: translateX(18px); background: var(--accent-text); }
+
+.hint { color: var(--muted); font-size: 0.85rem; overflow-wrap: anywhere; }
+.error { color: var(--bad); min-height: 1.2em; font-size: 0.9rem; white-space: pre-wrap; }
+
+/* ------------------------------------------------------------ files: transfers, the question which device, dragging */
+
+.transfer-list, .choices { list-style: none; margin: 0; padding: 0; }
+.transfer-list { background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); }
+.transfer-list:empty { display: none; }
+.transfer { padding: 12px 16px; }
+.transfer + .transfer { border-top: var(--border-width) solid var(--border); }
+.transfer-line { display: flex; gap: 12px; align-items: baseline; }
+.transfer-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.transfer-device { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.transfer-state { font-size: 0.85rem; white-space: nowrap; }
+.transfer-state.ok { color: var(--ok); }
+.transfer-state.bad { color: var(--bad); }
+.transfer progress { display: block; width: 100%; height: 6px; margin-top: 6px; }
+.toast.transfer { cursor: default; }
+.toast.transfer span { color: var(--muted); font-size: 0.85rem; }
+.toast.transfer progress { display: block; width: 100%; height: 6px; margin-top: 6px; }
+.choices li { margin: 0 0 6px; }
+.choices button { display: flex; width: 100%; justify-content: space-between; gap: 12px; align-items: baseline; text-align: left; }
+.choice-name { font-weight: 600; overflow-wrap: anywhere; }
+.choice-state { color: var(--muted); font-size: 0.85rem; text-align: right; }
+.drop-hint {
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20;
+  padding: 10px 18px; border-radius: var(--radius-pill); background: var(--accent); color: var(--accent-text);
+  font-weight: 600; box-shadow: var(--drop-shadow); pointer-events: none; display: none;
+}
+body.dragging .drop-hint { display: block; }
+body.dragging .card[data-state="online"] { outline: 2px dashed var(--accent); outline-offset: 2px; }
+body.dragging .card.drop-target { outline-style: solid; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+
+/* ------------------------------------------------------------ the small window of a request */
+
+body.request-page { margin: 0; padding: 18px 20px; min-height: 100vh; display: flex; flex-direction: column; gap: 8px; }
+.request-page h1 { margin: 0; font-size: 1.15rem; }
+.request-page .hint, .request-page .note { margin: 0; }
+.request-page .choices { flex: 1; overflow-y: auto; }
+.request-page .dialog-actions { display: flex; justify-content: flex-end; }
+.req-item { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 6px 2px; border-bottom: var(--border-width) solid var(--border); }
+.req-item.done .choice-state { color: var(--ok); }
+.req-item.failed .choice-state { color: var(--bad); text-align: right; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------ the window of a device */
+
+body.device-page { margin: 0; }
+.dev-head { padding: 16px 20px 0; background: var(--surface); border-bottom: var(--border-width) solid var(--border); position: sticky; top: 0; z-index: 1; }
+.dev-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* The light is at the right, as on the cards of the list. */
+.dev-title .light { margin: 0 0 0 auto; }
+.dev-title h1 { margin: 0; font-size: 1.3rem; overflow-wrap: anywhere; }
+.dev-head .hint { margin: 2px 0 0; }
+.dev-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.dev-actions { align-items: stretch; }
+.dev-actions button.icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; padding: 0; }
+.dev-actions button.icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.dev-actions button.open-screen { background: var(--ok); border-color: var(--ok); color: var(--open-screen-text); }
+.dev-actions button.open-screen:disabled { opacity: 0.55; }
+.dev-addons { display: contents; }
+/* The name of the device, with a pencil beside it; the pencil turns the name into a box. */
+.dev-title .dev-name-input { box-sizing: border-box; width: 260px; max-width: 100%; height: 36px; padding: 0 10px; font: inherit; font-size: 1.1rem; font-weight: 600; }
+.dev-name-input[hidden], .dev-title h1[hidden], .dev-title button[hidden] { display: none; }
+.dev-title button.rename { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border-color: transparent; background: none; color: var(--muted); }
+.dev-title button.rename:hover:not(:disabled) { color: var(--text); border-color: var(--border); }
+.dev-title button.rename svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.tabs { display: flex; gap: 4px; margin-top: 12px; }
+.tabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 10px 14px; color: var(--muted); }
+.tabs button:hover:not(:disabled) { color: var(--text); border-color: transparent; border-bottom-color: var(--border); }
+.tabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+
+.dev-body { padding: 16px 20px 32px; max-width: 900px; margin: 0 auto; }
+.panel { background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--surface-shadow); padding: 14px 18px; }
+.panel[hidden] { display: none; }
+/* The settings of a device are groups of their own (each one is a framed block), not one more panel:
+   a theme that styles `.panel` must not frame the whole tab as well. */
+.dev-settings { max-width: none; }
+.dev-settings[hidden] { display: none; }
+.dev-settings > .hint { margin: 0 0 12px 4px; }
+/* One row: the kind on the left, what is happening and the filter on the right. */
+.apps-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.apps-bar .updating { margin-left: auto; }
+.apps-bar .filter { width: min(220px, 100%); padding: 5px 10px; }
+.apps-bar .updating[hidden] + .filter { margin-left: auto; }
+#apps-state { margin: 0 0 10px; }
+.segmented { display: inline-flex; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+.segmented button { border: none; border-radius: 0; background: none; padding: 5px 12px; font-size: 0.9rem; }
+.segmented button + button { border-left: var(--border-width) solid var(--border); }
+.segmented button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+
+/* What is known about the device: a name on the left in a quiet colour, its value on the right. */
+.kv-group + .kv-group { margin-top: 20px; }
+.kv-title { margin: 0 0 4px; font-size: 0.8rem; font-weight: 700; letter-spacing: var(--heading-spacing); text-transform: var(--heading-transform); color: var(--muted); }
+.kv-row { display: grid; grid-template-columns: minmax(120px, 200px) 1fr; gap: 16px; padding: 9px 0; }
+.kv-row + .kv-row { border-top: var(--border-width) solid var(--border); }
+.kv-key { color: var(--muted); font-size: 0.9rem; }
+.kv-value { overflow-wrap: anywhere; }
+.kv-value.none { color: var(--muted); }
+
+.updating { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.85rem; }
+.updating[hidden] { display: none; }
+.spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+/* A button that waits: its text is kept (hidden) so its size does not change, and a spinner is drawn over it. */
+button.busy { position: relative; color: transparent; }
+button.busy::after { content: ""; position: absolute; inset: 0; margin: auto; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { button.busy::after { animation-duration: 3s; } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+
+/* The apps as a grid of tiles. */
+.apps { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.apps:empty { display: none; }
+.apps li { margin: 0; }
+/* The star that marks a favourite sits in the corner of a tile: faint until it is pointed at or marked. */
+.app-cell { position: relative; }
+.app-star { position: absolute; top: 4px; right: 4px; padding: 0 5px; border: none; background: none; color: var(--muted); font-size: 1rem; line-height: 1.4; opacity: 0; }
+.app-cell:hover .app-star, .app-star:focus-visible, .app-star.marked { opacity: 1; }
+.app-star.marked { color: var(--warn); }
+.app-star:hover:not(:disabled) { color: var(--warn); border-color: transparent; }
+.apps button.app-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; height: 100%; padding: 10px 6px; border-radius: var(--radius-md); background: var(--bg); }
+.apps button.app-tile:hover:not(:disabled), .apps button.app-tile:focus-visible { background: var(--surface); border-color: var(--accent); }
+.apps button.app-tile:disabled { opacity: 1; cursor: default; }
+.apps button.app-tile.launching { border-color: var(--accent); }
+.apps button.app-tile.launching .app-letter { opacity: 0.35; }
+.apps button.app-tile.launching .app-letter::after { content: ""; position: absolute; width: 24px; height: 24px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+.apps button.app-tile.open { border-color: var(--ok); }
+.apps button.app-tile.open .app-letter::after { content: ""; position: absolute; right: -4px; top: -4px; width: 12px; height: 12px; border-radius: 50%; background: var(--ok); border: 2px solid var(--surface); }
+.app-letter { position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-lg); font-size: 1.3rem; font-weight: 700; color: #fff; background: hsl(var(--hue) 45% 38%); }
+.app-name { font-size: 0.85rem; text-align: center; line-height: 1.25; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------ dialogs, console, messages */
+
+dialog {
+  background: var(--surface);
+  color: var(--text);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--surface-shadow);
+  padding: 20px;
+  width: min(440px, calc(100vw - 32px));
+}
+dialog::backdrop { background: var(--backdrop); }
+dialog h2 { margin-top: 0; }
+dialog label { display: block; margin-bottom: 12px; }
+dialog label > span { display: block; margin-bottom: 4px; font-size: 0.9rem; }
+.found { margin-bottom: 8px; }
+.found p { margin: 0 0 4px; font-size: 0.85rem; color: var(--muted); }
+.found button { margin: 0 6px 6px 0; }
+.dlg-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* The release of scrcpy: the choice in the settings, and the question before a download. */
+.scrcpy-choice { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; font-size: 0.9rem; }
+.details dt { color: var(--muted); }
+.details dd { margin: 0; overflow-wrap: anywhere; }
+.details dd.mono { font-family: var(--font-mono); font-size: 0.8rem; }
+#scrcpy-dlg-progress { width: 100%; margin-bottom: 8px; }
+
+/* The add-ons of the settings: adding one, the list, and the permissions asked in the dialog. */
+.addon-actions { display: flex; gap: 8px; }
+.setting-hint.bad { color: var(--bad); }
+.setting-hint.ok { color: var(--ok); }
+.addon-error { margin: 4px 0 0; padding: 8px; max-height: 140px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); background: var(--bg); border-radius: var(--radius-sm); }
+.addon-permissions { margin-bottom: 12px; }
+.addon-permissions .check { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; cursor: pointer; }
+.addon-permissions .check.warn span { color: var(--bad); font-weight: 600; }
+
+/* The debug console window: the log fills what the controls leave. */
+body.console-page { display: flex; flex-direction: column; height: 100vh; margin: 0; padding: 12px; box-sizing: border-box; }
+.console-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 8px; }
+.console-bar label { margin: 0; }
+.console-bar label > span { display: block; margin-bottom: 4px; font-size: 0.9rem; }
+.console-lines {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  background: var(--bg);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+  z-index: 10;
+}
+.toast {
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-left: 4px solid var(--info);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  cursor: pointer;
+  box-shadow: var(--toast-shadow);
+}
+.toast.error { border-left-color: var(--bad); }
+
+.popup-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 200px;
+  padding: 4px;
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--popup-shadow);
+}
+.popup-item {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.popup-item:hover:not(:disabled),
+.popup-item:focus-visible { background: var(--accent-soft); outline: none; }
+.popup-item:disabled { color: var(--muted); opacity: 0.6; cursor: default; }
+.popup-separator { height: 1px; margin: 4px 6px; background: var(--border); }
+.toast pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  color: var(--muted);
+  max-height: 160px;
+  overflow: auto;
+}
+
+} /* @layer program */

@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/shared/styles.css" />
+    <title>scrcpy-agent</title>
+    <script type="module" src="/app/main.ts" defer></script>
+  </head>
+
+  <body class="app">
+    <nav id="sidebar" class="sidebar" aria-label="Main">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name" data-i18n="app.title">scrcpy-agent</span>
+        <button type="button" id="nav-toggle" class="nav-toggle" data-i18n-title="nav.collapse">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg>
+        </button>
+      </div>
+
+      <div class="nav-list">
+        <button type="button" class="nav-item" data-page="devices" data-i18n-title="nav.devices">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>
+          <span data-i18n="nav.devices">Devices</span>
+        </button>
+        <button type="button" class="nav-item" data-page="files" data-i18n-title="nav.files">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"/></svg>
+          <span data-i18n="nav.files">File transfers</span>
+        </button>
+      </div>
+
+      <div class="sidebar-foot">
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+        <button type="button" class="nav-item" id="nav-console" data-i18n-title="nav.console">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M7 10l3 2.5L7 15M12.5 15H17"/></svg>
+          <span data-i18n="nav.console">Debug console</span>
+        </button>
+        <button type="button" class="nav-item" data-page="settings" data-i18n-title="nav.settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 14.5a1.6 1.6 0 0 0 .3 1.7l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.7-.3 1.6 1.6 0 0 0-1 1.5V20.5a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.7.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.7 1.6 1.6 0 0 0-1.5-1H3.5a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.7.3h0a1.6 1.6 0 0 0 1-1.5V3.5a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.7-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.7v0a1.6 1.6 0 0 0 1.5 1h.1a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+          <span data-i18n="nav.settings">Settings</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="content">
+      <header class="page-head">
+        <h1 id="page-title"></h1>
+        <div class="page-actions">
+          <button id="btn-pair" class="primary" data-i18n="header.pair">Pair device</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="page-devices" class="page">
+          <section id="empty" class="empty" hidden>
+            <h2 data-i18n="empty.title">No devices yet</h2>
+            <p data-i18n="empty.body">Turn on Wireless debugging on your phone (Android 11 or later), then use “Pair device”. USB debugging also works.</p>
+          </section>
+          <section id="devices" class="device-groups" aria-label="Devices"></section>
+        </section>
+
+        <section id="page-files" class="page" hidden>
+          <div class="page-toolbar">
+            <p class="hint" data-i18n="files.hint">Files sent to a device and files opened on one, since this program started.</p>
+            <button type="button" id="transfers-clear" data-i18n="transfers.clear">Clear finished</button>
+          </div>
+          <p id="files-empty" class="empty-note" data-i18n="files.empty">Nothing was sent yet. Drop files on a device, or use the right-click menu of a file.</p>
+          <ul id="transfers-list" class="transfer-list"></ul>
+        </section>
+
+        <section id="page-settings" class="page settings" hidden>
+          <p id="settings-state" class="saved-state" role="status" aria-live="polite"></p>
+
+          <section class="group">
+            <h2 data-i18n="settings.group_general">General</h2>
+            <div class="group-body">
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-language" data-i18n="settings.language">Language</label>
+                  <p class="setting-hint"><button type="button" id="set-open-locales" class="link" data-i18n="settings.open_locales">Open the language pack folder</button></p>
+                </div>
+                <div class="setting-control"><select id="set-language"></select></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-app-name" data-i18n="settings.app_name">Name of the program</label>
+                  <p class="setting-hint" data-i18n="settings.app_name_hint"></p>
+                </div>
+                <div class="setting-control"><input type="text" id="set-app-name" maxlength="40" data-i18n-placeholder="app.name" /></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-theme" data-i18n="settings.theme">Theme</label>
+                  <p class="setting-hint"><button type="button" id="set-open-themes" class="link" data-i18n="settings.open_themes">Open the themes folder</button></p>
+                </div>
+                <div class="setting-control"><select id="set-theme"></select></div>
+              </div>
+              <div class="setting" id="set-launch-row">
+                <div class="setting-text">
+                  <span class="setting-name" id="set-launch-at-login-name" data-i18n="settings.launch_at_login">Start when I log in</span>
+                  <p class="setting-hint" data-i18n="settings.launch_at_login_hint"></p>
+                </div>
+                <div class="setting-control"><input type="checkbox" id="set-launch-at-login" role="switch" aria-labelledby="set-launch-at-login-name" /></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <span class="setting-name" id="set-close-to-tray-name" data-i18n="settings.close_to_tray">Keep running in the system tray when the window is closed</span>
+                </div>
+                <div class="setting-control"><input type="checkbox" id="set-close-to-tray" role="switch" aria-labelledby="set-close-to-tray-name" /></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2 data-i18n="settings.group_connection">Connection</h2>
+            <div class="group-body">
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-adb-backend" data-i18n="settings.adb_backend">How to talk to adb</label>
+                  <p class="setting-hint" data-i18n="settings.adb_backend_hint">If devices are not found or commands fail, try the other option.</p>
+                </div>
+                <div class="setting-control">
+                  <select id="set-adb-backend">
+                    <option value="server" data-i18n="settings.adb_backend_server">Directly to the adb server (recommended)</option>
+                    <option value="command_line" data-i18n="settings.adb_backend_command_line">Through the adb program</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-scrcpy-mode" data-i18n="settings.scrcpy_mode">scrcpy mode</label>
+                  <p class="setting-hint" data-i18n="settings.scrcpy_mode_hint">The scrcpy window stays the same. The proxy only lets add-ons use what needs scrcpy's internal protocol, such as the live video. It applies to screens opened afterwards.</p>
+                </div>
+                <div class="setting-control">
+                  <select id="set-scrcpy-mode">
+                    <option value="official" data-i18n="settings.scrcpy_mode_official">Standard</option>
+                    <option value="proxy" data-i18n="settings.scrcpy_mode_proxy">With proxy (for add-ons' advanced features)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-device-refresh" data-i18n="settings.device_refresh">Read each device again every (seconds)</label>
+                  <p class="setting-hint" data-i18n="settings.device_refresh_hint">While a device is usable, its battery, storage and the rest are read again. 0 turns this off.</p>
+                </div>
+                <div class="setting-control"><input id="set-device-refresh" type="number" min="0" max="3600" step="1" inputmode="numeric" /></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2 data-i18n="settings.group_screen">Screen and input</h2>
+            <div class="group-body">
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-keyboard-mode" data-i18n="settings.keyboard_mode">Keyboard input</label>
+                  <p class="setting-hint" data-i18n="settings.keyboard_mode_hint">With a physical keyboard you type with the computer's keys and the device's input method turns them into text, so Chinese can be typed. Set the keyboard layout once in the device's own settings (its physical keyboard page). It applies to screens opened afterwards.</p>
+                </div>
+                <div class="setting-control">
+                  <select id="set-keyboard-mode">
+                    <option value="uhid" data-i18n="settings.keyboard_mode_uhid">As a physical keyboard (the device's input methods work)</option>
+                    <option value="sdk" data-i18n="settings.keyboard_mode_sdk">Standard (no Chinese or other input methods)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-bit-rate" data-i18n="settings.bit_rate">Picture quality: video bit rate (Mbps)</label>
+                  <p class="setting-hint" data-i18n="settings.bit_rate_hint">0 leaves it to scrcpy (8). A higher number gives a sharper picture and uses more of the connection; try 16 to 24 over Wi-Fi if text looks soft. It applies to screens opened afterwards.</p>
+                </div>
+                <div class="setting-control"><input id="set-bit-rate" type="number" min="0" max="200" step="1" inputmode="numeric" /></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <span class="setting-name" id="set-toolbar-enabled-name" data-i18n="settings.toolbar_enabled">Show a toolbar with the screen window</span>
+                  <p class="setting-hint" data-i18n="settings.toolbar_hint">On Windows the toolbar sticks to the screen window and follows it. On other systems it is a separate window that you drag by its grip.</p>
+                </div>
+                <div class="setting-control"><input type="checkbox" id="set-toolbar-enabled" role="switch" aria-labelledby="set-toolbar-enabled-name" /></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-toolbar-side" data-i18n="settings.toolbar_side">Side of the screen window</label>
+                </div>
+                <div class="setting-control">
+                  <select id="set-toolbar-side">
+                    <option value="right" data-i18n="settings.side_right">Right</option>
+                    <option value="left" data-i18n="settings.side_left">Left</option>
+                    <option value="top" data-i18n="settings.side_top">Top</option>
+                    <option value="bottom" data-i18n="settings.side_bottom">Bottom</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <span class="setting-name" id="set-toolbar-on-top-name" data-i18n="settings.toolbar_on_top">Keep the toolbar above other windows</span>
+                </div>
+                <div class="setting-control"><input type="checkbox" id="set-toolbar-on-top" role="switch" aria-labelledby="set-toolbar-on-top-name" /></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <span class="setting-name" data-i18n="settings.toolbar_buttons">Buttons of the toolbar</span>
+                  <p class="setting-hint" data-i18n="settings.toolbar_buttons_hint">Untick a button to hide it, and move it to change the order. A change applies to the toolbars that open from now on.</p>
+                </div>
+                <div class="setting-control toolbar-layout-control">
+                  <ul id="set-toolbar-buttons" class="toolbar-layout"></ul>
+                  <button type="button" id="set-toolbar-reset" data-action="toolbar-layout" data-i18n="settings.toolbar_buttons_reset">Back to the default</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2 data-i18n="settings.group_files">Files</h2>
+            <div class="group-body">
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-send-directory" data-i18n="settings.send_directory">Folder on the device for files you send</label>
+                </div>
+                <div class="setting-control"><input id="set-send-directory" spellcheck="false" autocomplete="off" placeholder="/sdcard/Download/scrcpy-agent" /></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-default-device" data-i18n="settings.default_device">Default device</label>
+                  <p class="setting-hint" data-i18n="settings.default_device_hint">Used by "send to the default device" and "open on the default device".</p>
+                </div>
+                <div class="setting-control"><select id="set-default-device"></select></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-request-close" data-i18n="settings.request_close">Seconds the request window stays after it went well</label>
+                  <p class="setting-hint" data-i18n="settings.request_close_hint">The small window of "send to / open on a device" from a file manager. 0 closes it at once. If something went wrong it stays until you close it.</p>
+                </div>
+                <div class="setting-control"><input id="set-request-close" type="number" min="0" max="60" step="1" inputmode="numeric" /></div>
+              </div>
+              <div class="setting" id="set-explorer-row" hidden>
+                <div class="setting-text">
+                  <span class="setting-name" id="set-explorer-menu-name" data-i18n="settings.explorer_menu">Add scrcpy-agent to the right-click menu of files</span>
+                  <p class="setting-hint" id="set-explorer-hint" data-i18n="settings.explorer_menu_hint">In Windows 11 it is under "Show more options". It is added or removed at once.</p>
+                </div>
+                <div class="setting-control"><input type="checkbox" id="set-explorer-menu" role="switch" aria-labelledby="set-explorer-menu-name" /></div>
+              </div>
+              <div class="setting" id="set-fm-row" hidden>
+                <div class="setting-text">
+                  <span class="setting-name" data-i18n="settings.file_managers">File managers</span>
+                  <p class="setting-hint" data-i18n="settings.file_managers_hint">The menu is written for the file managers found on this computer that are ticked.</p>
+                </div>
+                <div class="setting-control checks" id="set-fm-list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2 data-i18n="settings.group_scrcpy">scrcpy</h2>
+            <div class="group-body">
+              <div class="setting">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-scrcpy-version" data-i18n="settings.scrcpy_version">Version of scrcpy</label>
+                  <p class="setting-hint" id="set-scrcpy-hint"></p>
+                </div>
+                <div class="setting-control scrcpy-choice">
+                  <select id="set-scrcpy-version" data-action="scrcpy"></select>
+                  <button type="button" id="set-scrcpy-refresh" data-i18n="scrcpy.refresh">Refresh the list</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2 data-i18n="addon.group">Add-ons</h2>
+            <div class="group-body">
+              <div class="setting">
+                <div class="setting-text">
+                  <span class="setting-name" data-i18n="addon.install_new">Install a new add-on</span>
+                  <p class="setting-hint" data-i18n="addon.intro"></p>
+                </div>
+                <div class="setting-control">
+                  <button type="button" id="addon-add" class="primary" data-i18n="addon.add">Add</button>
+                </div>
+              </div>
+              <div id="addon-list"></div>
+              <div class="setting" id="addon-none">
+                <p class="setting-hint" data-i18n="addon.none"></p>
+              </div>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2 data-i18n="settings.group_advanced">Advanced</h2>
+            <div class="group-body">
+              <div class="setting stacked">
+                <div class="setting-text">
+                  <label class="setting-name" for="set-extra-args" data-i18n="settings.extra_args">Extra scrcpy arguments (one per line)</label>
+                  <p class="setting-hint" data-i18n="settings.extra_args_hint">Added to every scrcpy that is started, after the settings above.</p>
+                </div>
+                <div class="setting-control"><textarea id="set-extra-args" rows="3" spellcheck="false" placeholder="--max-fps=60"></textarea></div>
+              </div>
+              <div class="setting">
+                <div class="setting-text">
+                  <span class="setting-name" data-i18n="settings.data_folder">Data folder</span>
+                  <p class="setting-hint mono" id="set-data-dir"></p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="drop-hint" aria-hidden="true" data-i18n="drop.hint">Drop files on a device to send them</div>
+
+    <dialog id="dlg-choose">
+      <h2 id="choose-title"></h2>
+      <p id="choose-files" class="hint"></p>
+      <ul id="choose-list" class="choices"></ul>
+      <div class="dlg-actions">
+        <button type="button" id="choose-cancel" data-i18n="common.cancel">Cancel</button>
+      </div>
+    </dialog>
+
+    <dialog id="dlg-scrcpy">
+      <h2 id="scrcpy-dlg-title"></h2>
+      <p id="scrcpy-dlg-why"></p>
+      <p id="scrcpy-dlg-loading" class="hint"></p>
+      <dl id="scrcpy-dlg-details" class="details" hidden></dl>
+      <p id="scrcpy-dlg-keep" class="hint" hidden></p>
+      <p id="scrcpy-dlg-error" class="error" role="alert"></p>
+      <progress id="scrcpy-dlg-progress" max="1" value="0" hidden></progress>
+      <div class="dlg-actions">
+        <button type="button" id="scrcpy-dlg-later" data-i18n="scrcpy.not_now">Not now</button>
+        <button type="button" id="scrcpy-dlg-ok" class="primary" data-i18n="scrcpy.download" disabled>Download</button>
+      </div>
+    </dialog>
+
+    <dialog id="dlg-addon-source">
+      <h2 data-i18n="addon.source_title">Add an add-on</h2>
+      <ul class="choices">
+        <li>
+          <button type="button" id="addon-source-folder">
+            <span data-i18n="addon.source_folder">From a folder</span>
+            <span class="hint" data-i18n="addon.source_folder_hint"></span>
+          </button>
+        </li>
+        <li>
+          <button type="button" id="addon-source-zip" disabled>
+            <span data-i18n="addon.source_zip">From a zip file</span>
+            <span class="hint" data-i18n="addon.not_yet"></span>
+          </button>
+        </li>
+        <li>
+          <button type="button" id="addon-source-github" disabled>
+            <span data-i18n="addon.source_github">From a GitHub project</span>
+            <span class="hint" data-i18n="addon.not_yet"></span>
+          </button>
+        </li>
+      </ul>
+      <div class="dlg-actions">
+        <button type="button" id="addon-source-cancel" data-i18n="common.cancel">Cancel</button>
+      </div>
+    </dialog>
+
+    <dialog id="dlg-addon">
+      <h2 id="addon-dlg-title"></h2>
+      <p id="addon-dlg-meta" class="hint mono"></p>
+      <p id="addon-dlg-asks"></p>
+      <div id="addon-dlg-list" class="addon-permissions"></div>
+      <div class="dlg-actions">
+        <button type="button" id="addon-dlg-cancel" data-i18n="common.cancel">Cancel</button>
+        <button type="button" id="addon-dlg-ok" class="primary"></button>
+      </div>
+    </dialog>
+
+    <dialog id="dlg-addon-settings">
+      <h2 id="addon-settings-title"></h2>
+      <div id="addon-settings-form" class="addon-settings"></div>
+      <p id="addon-settings-state" class="settings-state" aria-live="polite"></p>
+      <div class="dlg-actions">
+        <button type="button" id="addon-settings-close" class="primary" data-i18n="addon.settings_close">Close</button>
+      </div>
+    </dialog>
+
+    <div id="toasts" class="toasts" aria-live="assertive"></div>
+
+    <dialog id="dlg-pair">
+      <form method="dialog" id="form-pair">
+        <h2 data-i18n="pair.title">Pair a device</h2>
+        <p id="pair-note" class="note" role="status" hidden></p>
+        <p class="hint" data-i18n="pair.hint">On the phone: Developer options → Wireless debugging → Pair device with pairing code.</p>
+        <div id="pair-found" class="found"></div>
+        <label>
+          <span data-i18n="pair.address">Address (IP:port)</span>
+          <input id="pair-address" autocomplete="off" spellcheck="false" placeholder="192.168.1.20:37000" />
+        </label>
+        <label>
+          <span data-i18n="pair.code">Pairing code (6 digits)</span>
+          <input id="pair-code" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="123456" />
+        </label>
+        <p id="pair-error" class="error" role="alert"></p>
+        <div class="dlg-actions">
+          <button type="button" id="pair-cancel" data-i18n="common.cancel">Cancel</button>
+          <button type="submit" id="pair-submit" class="primary" data-i18n="pair.submit">Pair</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

@@ -1,0 +1,55 @@
+/* Terminal: green on black, one monospace font, square corners, no shadows, and a faint scan line. */
+:root {
+  --bg: #050806;
+  --surface: #0a110c;
+  --text: #c8ffd9;
+  --muted: #6fae86;
+  --border: #1f5a37;
+  --accent: #39ff88;
+  --accent-text: #021a0b;
+  --accent-soft: #0d2a18;
+  --ok: #39ff88;
+  --warn: #ffcf4a;
+  --bad: #ff5d5d;
+  --info: #6fae86;
+  --open-screen-text: #021a0b;
+  --backdrop: rgba(0, 12, 4, 0.7);
+  --state-discovered: #c8ffd9;
+
+  --radius-lg: 0;
+  --radius-md: 0;
+  --radius-sm: 0;
+  --radius-pill: 0;
+  --light-radius: 0;
+  --light-size: 11px;
+
+  --toast-shadow: none;
+  --popup-shadow: none;
+  --drop-shadow: none;
+
+  --font: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, "Noto Sans Mono CJK TC", monospace;
+  --font-size: 14px;
+  --line-height: 1.45;
+  --heading-transform: none;
+  --heading-spacing: 0;
+
+  --bg-image: repeating-linear-gradient(0deg, rgba(57, 255, 136, 0.035) 0 1px, transparent 1px 3px);
+}
+
+.page-head h1::before,
+.dev-title h1::before { content: "> "; color: var(--accent); }
+.page-head h1::after { content: "_"; color: var(--accent); animation: terminal-blink 1.1s steps(1) infinite; }
+.group h2::before { content: "## "; }
+@keyframes terminal-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .page-head h1::after { animation: none; } }
+
+button.primary { background: transparent; color: var(--accent); border-color: var(--accent); }
+button.primary:hover:not(:disabled) { background: var(--accent); color: var(--accent-text); }
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.card:hover { border-color: var(--accent); }
+.light[data-state="online"] { box-shadow: 0 0 8px var(--state-online); }
+.light[data-state="unauthorized"] { box-shadow: 0 0 8px var(--state-unauthorized); }
+.light[data-state="offline"] { box-shadow: 0 0 8px var(--state-offline); }
+/* A mark on the left of the entry that is shown; drawn inside, so it does not move the icon. */
+.nav-item[aria-current="page"] { box-shadow: inset 3px 0 0 var(--accent); border-radius: 0; }
+.toast { border-left-width: 3px; }

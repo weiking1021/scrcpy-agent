@@ -1,0 +1,45 @@
+/* Compact: a smaller type and tighter spacing everywhere, so more fits in a window. */
+:root {
+  --font-size: 13px;
+  --line-height: 1.35;
+  --radius-lg: 8px;
+  --radius-md: 6px;
+  --radius-sm: 4px;
+
+  --sidebar-width: 184px;
+  --nav-height: 30px;
+}
+
+button { padding: 3px 10px; }
+input, select, textarea { padding: 3px 8px; }
+
+.sidebar { gap: 6px; }
+.nav-list { gap: 2px; }
+.brand { padding: 2px 6px 8px; }
+
+.page-head { padding: 10px 16px 4px; min-height: 46px; }
+.page-head h1 { font-size: 1.2rem; }
+main { padding: 4px 16px 20px; }
+.grid { gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.card { padding: 10px 12px; gap: 3px; }
+.card h3 { font-size: 1rem; }
+.card-actions { padding-top: 6px; gap: 6px; }
+.card-actions button.icon { height: 28px; width: 36px; }
+
+.group { margin-bottom: 14px; }
+.setting { padding: 7px 14px; gap: 4px 16px; }
+.group h2 { margin-bottom: 4px; }
+
+.dev-head { padding: 10px 16px 0; }
+.dev-actions { margin-top: 8px; }
+.dev-actions button.icon { width: 36px; }
+.tabs { margin-top: 8px; }
+.tabs button { padding: 6px 10px; }
+.dev-body { padding: 10px 16px 20px; }
+.panel { padding: 8px 12px; }
+.kv-row { padding: 5px 0; }
+.apps { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; }
+.apps button.app-tile { padding: 6px 4px; gap: 4px; }
+.app-letter { width: 34px; height: 34px; font-size: 1.1rem; }
+.transfer { padding: 8px 12px; }
+.status-strip { gap: 4px 14px; margin-top: 6px; }

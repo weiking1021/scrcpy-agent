@@ -1,0 +1,15 @@
+/* High contrast: black and white, with strong borders and one bright accent. */
+:root {
+  --bg: #000000;
+  --surface: #000000;
+  --text: #ffffff;
+  --muted: #d0d0d0;
+  --border: #ffffff;
+  --accent: #ffd400;
+  --accent-text: #000000;
+  --accent-soft: #333300;
+  --ok: #3dff7a;
+  --warn: #ffb000;
+  --bad: #ff6b6b;
+  --info: #d0d0d0;
+}

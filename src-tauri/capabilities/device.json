@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "device",
+  "description": "Capability for the device windows: they read what is known about their device and set their own title",
+  "windows": ["device-*"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-title"
+  ]
+}

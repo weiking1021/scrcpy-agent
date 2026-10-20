@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "request",
+  "description": "Capability for the small window of a request from a file manager: it follows the request and sets its own title",
+  "windows": ["shell-request"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-title"
+  ]
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/shared/styles.css" />
+    <title>scrcpy-agent debug console</title>
+    <script type="module" src="/console/console.ts" defer></script>
+  </head>
+
+  <body class="console-page">
+    <p class="hint" data-i18n="console.hint">Lines can contain device identifiers and addresses. Check them before sharing.</p>
+    <div class="console-bar">
+      <label>
+        <span data-i18n="console.level">Show</span>
+        <select id="console-level">
+          <option value="debug" data-i18n="console.level_debug">Everything</option>
+          <option value="info" data-i18n="console.level_info">Information and above</option>
+          <option value="warn" data-i18n="console.level_warn">Warnings and errors</option>
+          <option value="error" data-i18n="console.level_error">Errors only</option>
+        </select>
+      </label>
+      <button type="button" id="console-pause" data-i18n="console.pause">Pause</button>
+      <button type="button" id="console-clear" data-i18n="console.clear">Clear</button>
+      <button type="button" id="console-copy" data-i18n="console.copy">Copy</button>
+    </div>
+    <pre id="console-lines" class="console-lines"></pre>
+  </body>
+</html>

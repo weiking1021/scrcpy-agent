@@ -1,0 +1,11 @@
+# Built on the machine that builds; never sent to the image.
+node_modules
+dist
+src-tauri/target
+src-tauri/target-tests
+src-tauri/gen/schemas
+out
+out.tmp-*
+tmp-capture
+.git
+.vscode

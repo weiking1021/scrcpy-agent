@@ -1,0 +1,33 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+# The build out of the Dockerfile.
+/out
+/out.tmp-*
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# AI generated docs
+CLAUDE.md
+GEMINI.md
+CODEX.md
+ARCHITECTURE.md
+SPEC.md

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Embedded into the test executables only (see build.rs). Without it, a
+     Windows test executable that links the Tauri windowing code fails to
+     start with STATUS_ENTRYPOINT_NOT_FOUND, because it gets the old
+     Common Controls library. The application itself gets its manifest from
+     tauri-build. -->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls"
+                        version="6.0.0.0" processorArchitecture="*"
+                        publicKeyToken="6595b64144ccf1df" language="*"/>
+    </dependentAssembly>
+  </dependency>
+</assembly>

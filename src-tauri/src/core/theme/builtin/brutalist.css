@@ -1,0 +1,61 @@
+/* Brutalist: thick black lines, hard shadows, flat colours and heavy capitals. */
+:root {
+  --bg: #fff2a8;
+  --surface: #ffffff;
+  --text: #000000;
+  --muted: #3d3d3d;
+  --border: #000000;
+  --accent: #ff5fa2;
+  --accent-text: #000000;
+  --accent-soft: #ffd0e5;
+  --ok: #008f4f;
+  --warn: #c76a00;
+  --bad: #d40027;
+  --info: #3d3d3d;
+  --open-screen-text: #000000;
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --state-online: #00c46a;
+  --state-unauthorized: #ffb000;
+  --state-offline: #ff2d55;
+  --state-discovered: #ffffff;
+  --state-disconnected: #9a9a9a;
+
+  --radius-lg: 0;
+  --radius-md: 0;
+  --radius-sm: 0;
+  --radius-pill: 0;
+  --light-radius: 0;
+  --light-size: 16px;
+  --border-width: 3px;
+
+  --surface-shadow: 6px 6px 0 #000000;
+  --control-shadow: 3px 3px 0 #000000;
+  --toast-shadow: 5px 5px 0 #000000;
+  --popup-shadow: 5px 5px 0 #000000;
+  --drop-shadow: 5px 5px 0 #000000;
+
+  --font: "Helvetica Neue", Arial, "Noto Sans", "Noto Sans CJK TC", sans-serif;
+  --heading-transform: uppercase;
+  --heading-spacing: 0.02em;
+}
+
+h1, h2, h3, .brand-name, .setting-name { font-weight: 900; }
+button { font-weight: 700; }
+button:hover:not(:disabled) { background: var(--accent-soft); }
+button.primary:hover:not(:disabled) { background: #000000; color: #ffffff; }
+button:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: none; filter: none; }
+.nav-item { box-shadow: none; }
+.nav-item[aria-current="page"] { background: #000000; color: #ffffff; }
+.nav-toggle { box-shadow: none; }
+.sidebar { background: #ffffff; }
+.group-body, .card, .panel, dialog { box-shadow: var(--surface-shadow); }
+.group h2 { background: #000000; color: #ffffff; display: inline-block; padding: 2px 10px; margin-left: 0; }
+.card-actions button.open-screen, .dev-actions button.open-screen { box-shadow: var(--control-shadow); }
+.light { transform: rotate(45deg); }
+.apps button.app-tile { box-shadow: var(--control-shadow); }
+.segmented { box-shadow: var(--control-shadow); }
+.toast { border-left-width: 12px; }
+/* The switch has a thicker frame here: its knob is made to fit what is inside it (36 by 18). */
+input[type="checkbox"][role="switch"] { box-shadow: var(--control-shadow); }
+input[type="checkbox"][role="switch"]::before { top: 1px; left: 1px; width: 16px; height: 16px; border-radius: 0; }
+input[type="checkbox"][role="switch"]:checked::before { transform: translateX(18px); }

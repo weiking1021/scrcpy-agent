@@ -1,0 +1,78 @@
+[package]
+name = "scrcpy-agent"
+# The only place the version of the program is written: the packages (names and
+# metadata), the installer and the web part all take it from here.
+version = "0.1.0"
+description = "scrcpy-based device manager with auto discovery"
+authors = ["weiking1021"]
+license = "MIT"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "scrcpy_agent_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1.0.104"
+sha2 = "0.11.1"
+flate2 = "1.1.10"
+tar = "0.4.46"
+tokio = { version = "1.53.3", features = ["process", "time", "io-util", "sync", "macros", "rt", "fs", "net", "signal"] }
+zip = { version = "9.0.4", default-features = false, features = ["deflate"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "json", "stream"] }
+mdns-sd = "0.21.5"
+thiserror = "2.0.21"
+# The engine that runs `main.js` of the add-ons (QuickJS): small, has a memory limit and a way to
+# interrupt a script, and has no files, network or programs unless the host hands them out.
+rquickjs = { version = "0.14", features = ["futures"] }
+
+
+# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+# The debug and test builds: the lines of the code are enough for a backtrace. The picture of
+# every variable, and of every dependency, is what filled tens of gigabytes of the disk (the
+# .pdb files and the libraries). The release build has none.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }
+# Writes the TypeScript types of the add-on interface from the Rust types (`npm run gen:addon-types`). Only the tests
+# use it: the program carries none of it.
+ts-rs = "12"
+
+# A second start (the Explorer menu starts the program for every file) hands its
+# arguments to the one that runs and ends.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = "2"
+# The system's own dialog for choosing a folder (used from our own command, not given to the page).
+tauri-plugin-dialog = "2"
+
+[target."cfg(windows)".dependencies]
+# The registry: the media type Windows has for an extension, and the entries of
+# the Explorer menu.
+winreg = "0.56.0"
+# The shortcuts of apps (.lnk files).
+mslnk = "0.1.8"
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_Graphics_Dwm", "Win32_UI_HiDpi", "Win32_UI_Accessibility", "Win32_System_Threading"] }

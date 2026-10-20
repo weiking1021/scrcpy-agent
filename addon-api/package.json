@@ -1,0 +1,9 @@
+{
+  "name": "scrcpy-agent-addon-api",
+  "version": "1.0.0",
+  "description": "TypeScript types for the add-ons of scrcpy-agent (interface api 1). The major version is the api number of addon.json.",
+  "types": "index.d.ts",
+  "files": ["index.d.ts", "generated"],
+  "license": "MIT",
+  "private": true
+}

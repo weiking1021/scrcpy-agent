@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/shared/styles.css" />
+    <title>scrcpy-agent</title>
+    <script type="module" src="/files/request.ts" defer></script>
+  </head>
+
+  <body class="request-page">
+    <h1 id="req-title"></h1>
+    <p id="req-files" class="hint"></p>
+    <p id="req-note" class="note" hidden></p>
+    <ul id="req-list" class="choices"></ul>
+    <p id="req-status" class="hint" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button type="button" id="req-button"></button>
+    </div>
+  </body>
+</html>

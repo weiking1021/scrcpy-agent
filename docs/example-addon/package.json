@@ -1,0 +1,7 @@
+{
+  "name": "example-addon",
+  "private": true,
+  "devDependencies": {
+    "scrcpy-agent-addon-api": "file:vendor/scrcpy-agent-addon-api-1.0.0.tgz"
+  }
+}

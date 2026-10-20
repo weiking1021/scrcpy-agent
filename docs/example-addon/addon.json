@@ -1,0 +1,14 @@
+{
+  "id": "example-addon",
+  "name": "Example add-on",
+  "version": "0.1.0",
+  "api": 1,
+  "permissions": ["device_shell", "run_process", "screen_capture"],
+  "settings": [
+    { "id": "greeting", "type": "text", "label": "Greeting", "hint": "What \"Say hello\" writes to the console.", "default": "hello", "max_length": 40 },
+    { "id": "repeat", "type": "number", "label": "Repeat", "hint": "How many times \"Say hello\" writes it.", "default": 1, "min": 1, "max": 5 },
+    { "id": "style", "type": "choice", "label": "Style", "default": "plain",
+      "options": [{ "value": "plain", "label": "As typed" }, { "value": "upper", "label": "UPPER CASE" }] },
+    { "id": "verbose", "type": "boolean", "label": "Write every event to the console", "hint": "Off: only the changes of settings.", "default": false }
+  ]
+}

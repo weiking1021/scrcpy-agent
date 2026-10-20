@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/shared/styles.css" />
+    <title>scrcpy-agent</title>
+    <script type="module" src="/devices/window/device.ts" defer></script>
+  </head>
+
+  <body class="device-page">
+    <header class="dev-head">
+      <div class="dev-title">
+        <h1 id="dev-name"></h1>
+        <input id="dev-name-input" class="dev-name-input" maxlength="64" autocomplete="off" spellcheck="false" hidden />
+        <button type="button" id="dev-rename-start" class="rename" data-i18n-title="device_window.rename"></button>
+        <span id="dev-state" class="light" role="img"></span>
+      </div>
+      <p id="dev-reported" class="hint"></p>
+      <div id="dev-status" class="status-strip" role="list"></div>
+      <div class="dev-actions">
+        <button type="button" id="dev-open" class="icon open-screen" data-i18n-title="device.open"></button>
+        <button type="button" id="dev-refresh" data-i18n="device_window.refresh">Refresh</button>
+        <span id="dev-addons" class="dev-addons"></span>
+      </div>
+      <p id="dev-note" class="note" hidden></p>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-btn-apps" data-tab="apps" aria-selected="true" data-i18n="device_window.tab_apps">Apps</button>
+        <button type="button" role="tab" id="tab-btn-info" data-tab="info" aria-selected="false" data-i18n="device_window.tab_info">Details</button>
+        <button type="button" role="tab" id="tab-btn-settings" data-tab="settings" aria-selected="false" data-i18n="device_window.tab_settings">Device settings</button>
+      </div>
+    </header>
+
+    <main class="dev-body">
+      <section class="panel" id="tab-apps" role="tabpanel" aria-labelledby="tab-btn-apps">
+        <div class="apps-bar">
+          <div id="apps-kind" class="segmented" role="group">
+            <button type="button" data-kind="all" data-i18n="apps.kind_all" aria-pressed="true">All</button>
+            <button type="button" data-kind="recent" data-i18n="apps.kind_recent" aria-pressed="false">Recent</button>
+            <button type="button" data-kind="favorites" data-i18n="apps.kind_favorites" aria-pressed="false">Favorites</button>
+            <button type="button" data-kind="user" data-i18n="apps.kind_user" aria-pressed="false">Installed</button>
+            <button type="button" data-kind="system" data-i18n="apps.kind_system" aria-pressed="false">System</button>
+          </div>
+          <span id="apps-updating" class="updating" hidden role="status">
+            <span class="spinner" aria-hidden="true"></span>
+            <span data-i18n="apps.updating">Updating…</span>
+          </span>
+          <input id="apps-search" class="filter" type="search" autocomplete="off" spellcheck="false" data-i18n-placeholder="apps.search" />
+        </div>
+        <p id="apps-state" class="hint" role="status"></p>
+        <ul id="apps-list" class="apps"></ul>
+      </section>
+
+      <section class="panel" id="tab-info" role="tabpanel" aria-labelledby="tab-btn-info" hidden>
+        <div id="dev-info" aria-live="polite"></div>
+      </section>
+
+      <section class="dev-settings settings" id="tab-settings" role="tabpanel" aria-labelledby="tab-btn-settings" hidden>
+        <p id="ds-state" class="saved-state" role="status" aria-live="polite"></p>
+        <p class="hint" data-i18n="device_settings.intro">What is set here is for this device alone and wins over the general settings. It applies to screens and windows opened afterwards.</p>
+
+        <section class="group">
+          <h2 data-i18n="device_settings.group_stream">Stream</h2>
+          <div class="group-body">
+            <div class="setting">
+              <div class="setting-text">
+                <label class="setting-name" for="ds-keyboard" data-i18n="settings.keyboard_mode">Keyboard input</label>
+              </div>
+              <div class="setting-control">
+                <select id="ds-keyboard">
+                  <option value="" data-i18n="device_settings.follow_general">Follow the general setting</option>
+                  <option value="uhid" data-i18n="settings.keyboard_mode_uhid">As a physical keyboard (the device's input methods work)</option>
+                  <option value="sdk" data-i18n="settings.keyboard_mode_sdk">Standard (no Chinese or other input methods)</option>
+                </select>
+              </div>
+            </div>
+            <div class="setting">
+              <div class="setting-text">
+                <label class="setting-name" for="ds-bit-rate" data-i18n="settings.bit_rate">Picture quality: video bit rate (Mbps)</label>
+                <p class="setting-hint" data-i18n="device_settings.bit_rate_hint">Leave it empty to follow the general setting.</p>
+              </div>
+              <div class="setting-control"><input id="ds-bit-rate" type="number" min="1" max="200" step="1" inputmode="numeric" data-i18n-placeholder="device_settings.follow_short" /></div>
+            </div>
+            <div class="setting">
+              <div class="setting-text">
+                <label class="setting-name" for="ds-max-size" data-i18n="device_settings.max_size">Longest side of the picture (pixels)</label>
+                <p class="setting-hint" data-i18n="device_settings.max_size_hint">0 keeps the device's own size. A smaller picture is lighter for the connection (1280 or 1920 are common).</p>
+              </div>
+              <div class="setting-control"><input id="ds-max-size" type="number" min="0" max="16384" step="1" inputmode="numeric" list="ds-max-size-list" /></div>
+              <datalist id="ds-max-size-list"><option value="0"></option><option value="800"></option><option value="1024"></option><option value="1280"></option><option value="1600"></option><option value="1920"></option></datalist>
+            </div>
+          </div>
+        </section>
+
+        <section class="group">
+          <h2 data-i18n="device_settings.group_apps">Apps</h2>
+          <div class="group-body">
+            <div class="setting">
+              <div class="setting-text">
+                <label class="setting-name" for="ds-virtual" data-i18n="apps.virtual_display">Open in a separate virtual display</label>
+                <p class="setting-hint" data-i18n="apps.virtual_display_hint">The app gets a window of its own and the device's screen is left alone. If the device cannot do that, turn this off to open the app on the device's own screen.</p>
+              </div>
+              <div class="setting-control"><input type="checkbox" id="ds-virtual" role="switch" /></div>
+            </div>
+            <div class="setting">
+              <div class="setting-text">
+                <label class="setting-name" for="ds-awake" data-i18n="apps.keep_awake">Keep the device awake</label>
+                <p class="setting-hint" data-i18n="apps.keep_awake_hint">For devices that stop accepting touches in an app window once they lock or dim the screen (reported for some devices). The screen stays on for up to an hour while the window is open; the old setting is put back when it closes. Only one window of a device does this at a time.</p>
+              </div>
+              <div class="setting-control"><input type="checkbox" id="ds-awake" role="switch" /></div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div id="toasts" class="toasts" aria-live="assertive"></div>
+  </body>
+</html>
