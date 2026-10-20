@@ -5,6 +5,8 @@
 以 [scrcpy](https://github.com/Genymobile/scrcpy) 為基礎的桌面服務。常駐於系統匣，在區域網路上找到 Android 裝置，
 重新連線已配對的裝置，並開啟它們的畫面。以 JavaScript 撰寫的 Addon 可以擴充功能。
 
+![裝置清單：已配對的裝置與在網路上發現的裝置](docs/images/devices.png)
+
 ## 功能
 
 - **裝置探索與連線。** 透過 mDNS 與 adb 追蹤無線偵錯。只連線已配對的裝置，不連同一網路上的其他裝置。已配對的裝置停止
@@ -22,6 +24,14 @@
 scrcpy、adb 與 scrcpy server 不包含在內。第一次執行時，程式會先請使用者確認，再從官方 GitHub release 下載 scrcpy
 （壓縮包同時含這三者，因此版本一定相符），並先顯示檔名、大小與 SHA-256。預設版本是 v5.0.1，即程式測試所用的版本；
 版本可在設定中更換。
+
+## 截圖
+
+![裝置上的 App，各自開在獨立的視窗](docs/images/app-windows.png)
+
+![裝置的詳細頁：App、詳細資料與裝置設定](docs/images/device-details.png)
+
+![從檔案管理員的右鍵選單傳送檔案到裝置](docs/images/context-menu.png)
 
 ## 安裝
 

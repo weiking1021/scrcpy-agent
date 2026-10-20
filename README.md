@@ -5,6 +5,8 @@
 A desktop service built on [scrcpy](https://github.com/Genymobile/scrcpy). It runs in the system tray, finds Android
 devices on the local network, reconnects paired devices, and opens their screens. Add-ons written in JavaScript extend it.
 
+![The device list: paired devices and a device found on the network](docs/images/devices.png)
+
 ## Features
 
 - **Device discovery and connection.** Wireless debugging is followed through mDNS and adb. Only paired devices are
@@ -26,6 +28,14 @@ scrcpy, adb and the scrcpy server are not included. On first run the program ask
 scrcpy release from the official GitHub releases (the archive contains all three, so their versions always match); the
 file name, size and SHA-256 are shown first. The default is v5.0.1, the release the program is tested with; the version
 is a setting.
+
+## Screenshots
+
+![Apps of a device, each opened in a window of its own](docs/images/app-windows.png)
+
+![The details of a device: its apps, details and settings](docs/images/device-details.png)
+
+![Sending a file to a device from the context menu of the file manager](docs/images/context-menu.png)
 
 ## Install
 
