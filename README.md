@@ -71,6 +71,7 @@ npm install
 npm run tauri dev        # run, rebuilding when a file changes
 npm run tauri build      # the program and the installer for this system
 npm run package          # Docker: the Linux and Windows packages and the add-on types, into out/
+npm run package -- --sequential  # Build Linux and Windows in turn on machines with less memory
 ```
 
 Tests use a fake adb and a fake scrcpy (`src-tauri/examples/`) and need no device:

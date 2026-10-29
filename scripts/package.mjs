@@ -2,7 +2,8 @@
 // (one build), and the Windows installer and portable zip; and the types package of the add-ons
 // (`addon-api/`, a .tgz made by `npm pack`). Run with `npm run package`.
 //
-// The two builds do not depend on each other, so they run at the same time. `out/` ends
+// The two builds run at the same time by default. On machines with less memory,
+// `npm run package -- --sequential` runs them one after the other. `out/` ends
 // with only what this run built: each build exports into a folder of its own, and `out/`
 // is replaced only when both succeeded, so a failed build leaves the previous packages as
 // they were. The exit code is not 0 when any build failed (a CI job then fails).
@@ -13,6 +14,7 @@ import { createInterface } from "node:readline";
 import { join } from "node:path";
 
 const OUT = "out";
+const sequential = process.argv.includes("--sequential");
 // The targets of the Dockerfile that export files, each with the folder it exports into
 // and the name its lines are shown with.
 const BUILDS = [
@@ -37,7 +39,12 @@ function build({ target, folder, name }) {
 }
 
 for (const { folder } of BUILDS) rmSync(folder, { recursive: true, force: true });
-const codes = await Promise.all(BUILDS.map(build));
+const codes = [];
+if (sequential) {
+  for (const target of BUILDS) codes.push(await build(target));
+} else {
+  codes.push(...await Promise.all(BUILDS.map(build)));
+}
 const failed = BUILDS.filter((_, index) => codes[index] !== 0);
 
 if (failed.length > 0) {

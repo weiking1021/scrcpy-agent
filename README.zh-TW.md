@@ -65,6 +65,7 @@ npm install
 npm run tauri dev        # 執行，檔案變動時自動重編
 npm run tauri build      # 產生此系統的程式與安裝程式
 npm run package          # Docker：Linux 與 Windows 的安裝包及 Addon 型別，輸出到 out/
+npm run package -- --sequential  # 本機記憶體較少時，依序建置 Linux 與 Windows
 ```
 
 測試使用假的 adb 與假的 scrcpy（`src-tauri/examples/`），不需要實體裝置：
