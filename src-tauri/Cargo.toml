@@ -2,7 +2,7 @@
 name = "scrcpy-agent"
 # The only place the version of the program is written: the packages (names and
 # metadata), the installer and the web part all take it from here.
-version = "0.1.0"
+version = "0.2.0"
 description = "scrcpy-based device manager with auto discovery"
 authors = ["weiking1021"]
 license = "MIT"
