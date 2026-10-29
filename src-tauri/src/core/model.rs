@@ -443,6 +443,9 @@ pub struct Settings {
     pub launch_at_login: bool,
     /// The entries of the Windows Explorer menu are registered.
     pub explorer_menu: bool,
+    /// The separate Windows 11 menu (not the legacy "Show more options" menu).
+    #[serde(deserialize_with = "lenient")]
+    pub windows11_explorer_menu: bool,
     /// The file managers of Linux that the menu is not written for, though they are
     /// there. A name that is not one of the known ones is left out, not an error.
     #[serde(deserialize_with = "known_file_managers")]
@@ -486,6 +489,7 @@ impl Default for Settings {
             default_device: None,
             launch_at_login: false,
             explorer_menu: false,
+            windows11_explorer_menu: false,
             disabled_file_managers: Vec::new(),
             request_close_seconds: RequestCloseSeconds::default(),
             device_refresh_seconds: RefreshSeconds::default(),

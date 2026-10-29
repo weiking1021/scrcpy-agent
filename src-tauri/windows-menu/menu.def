@@ -1,0 +1,4 @@
+LIBRARY scrcpy-agent-shell
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE

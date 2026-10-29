@@ -94,6 +94,11 @@ impl Store {
         store
     }
 
+    /// Deployment resources of the optional Windows 11 file menu.
+    pub fn windows11_menu_dir(&self) -> PathBuf {
+        self.root().join("windows11-menu")
+    }
+
     /// The folder itself (for showing it to the user).
     pub fn root(&self) -> &Path {
         &self.root

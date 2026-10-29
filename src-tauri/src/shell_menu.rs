@@ -19,6 +19,25 @@ pub fn available() -> bool {
     }
 }
 
+/// The new Explorer menu only exists on Windows 11. The UI hides its own row
+/// elsewhere; the older menu keeps the availability it already had.
+pub fn windows11_available() -> bool {
+    #[cfg(windows)]
+    { crate::core::integration::windows11_menu::available() }
+    #[cfg(not(windows))]
+    { false }
+}
+
+pub fn apply_windows11(enabled: bool, directory: &std::path::Path, texts: &MenuTexts) -> Result<(), CoreError> {
+    #[cfg(windows)]
+    { crate::core::integration::windows11_menu::apply(enabled, directory, texts) }
+    #[cfg(not(windows))]
+    {
+        let _ = (directory, texts);
+        if enabled { Err(CoreError::Unavailable) } else { Ok(()) }
+    }
+}
+
 /// The kind of shortcut of apps this system has; `None` where there are none.
 pub fn shortcut_kind() -> Option<ShortcutKind> {
     ShortcutKind::of(Os::current())

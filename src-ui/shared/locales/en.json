@@ -192,6 +192,8 @@
   "settings.default_device": "Default device (for \"send to\" and \"open on\")",
   "settings.default_device_none": "None (ask me each time)",
   "settings.explorer_menu": "Add {app} to the right-click menu of files",
+  "settings.windows11_menu": "Add {app} to the Windows 11 right-click menu",
+  "settings.windows11_menu_hint": "Shown directly in the new file menu, independently of Show more options. Registration may ask for administrator permission; the original system setting is restored afterwards. File Explorer may need to be reopened after a change.",
   "settings.app_name": "Name of the program",
   "settings.app_name_hint": "What it is called in the right-click menu, the titles of its windows and the tray. Empty is the standard name.",
   "settings.app_name_invalid": "That is not a usable name: 1 to 40 characters, none of / \\ : * ? \" < > |",

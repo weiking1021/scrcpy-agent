@@ -93,6 +93,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         settings::save_settings,
         settings::set_explorer_menu_texts,
         settings::explorer_menu_available,
+        settings::windows11_menu_available,
         settings::launch_at_login_available,
         settings::detected_file_managers,
         settings::list_user_locales,
@@ -160,6 +161,15 @@ pub fn run() {
             tauri::async_runtime::spawn_blocking(move || addons_core.addons().start_installed());
             // The menu of the Explorer follows the setting, and the path of this program.
             let settings = core.snapshot().settings;
+            if settings.windows11_explorer_menu {
+                let directory = core.store().windows11_menu_dir();
+                let texts = explorer_texts(app.handle());
+                tauri::async_runtime::spawn_blocking(move || {
+                    if let Err(error) = shell_menu::apply_windows11(true, &directory, &texts) {
+                        eprintln!("the Windows 11 file menu could not be brought up to date: {error}");
+                    }
+                });
+            }
             if let Err(error) =
                 shell_menu::apply(settings.explorer_menu, &settings.disabled_file_managers, &explorer_texts(app.handle()))
             {

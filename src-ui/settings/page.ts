@@ -26,12 +26,14 @@ let host: SettingsHost;
 
 /** What this system can do, asked once at the start: it decides which rows of the page are shown. */
 let explorerAvailable = false;
+let windows11MenuAvailable = false;
 let launchAvailable = false;
 /** The file managers of this system that the menu can be written for (none on Windows). */
 let detectedManagers: FileManager[] = [];
 
 export async function loadSystemFeatures(): Promise<void> {
   explorerAvailable = await invoke<boolean>("explorer_menu_available").catch(() => false);
+  windows11MenuAvailable = await invoke<boolean>("windows11_menu_available").catch(() => false);
   launchAvailable = await invoke<boolean>("launch_at_login_available").catch(() => false);
   detectedManagers = await invoke<FileManager[]>("detected_file_managers").catch(() => []);
 }
@@ -73,6 +75,8 @@ function controls() {
     sendDirectory: $<HTMLInputElement>("set-send-directory"),
     defaultDevice: $<HTMLSelectElement>("set-default-device"),
     explorerMenu: $<HTMLInputElement>("set-explorer-menu"),
+    windows11Menu: $<HTMLInputElement>("set-windows11-menu"),
+    windows11Row: $("set-windows11-row"),
     explorerRow: $("set-explorer-row"),
     explorerHint: $("set-explorer-hint"),
     managersRow: $("set-fm-row"),
@@ -106,6 +110,8 @@ export function fillSettings(): void {
   c.sendDirectory.value = s.send_directory;
   fillDefaultDevices(c.defaultDevice, s.default_device, snap);
   c.explorerMenu.checked = s.explorer_menu;
+  c.windows11Menu.checked = s.windows11_explorer_menu;
+  c.windows11Row.hidden = !windows11MenuAvailable;
   c.explorerRow.hidden = !explorerAvailable;
   // On Linux the menu is written for each file manager found, and each can be left out.
   c.managersRow.hidden = !explorerAvailable || detectedManagers.length === 0;
@@ -169,6 +175,7 @@ function readControls(c: Controls, snap: Snapshot, resetLayout: boolean): Settin
     send_directory: c.sendDirectory.value.trim(),
     default_device: c.defaultDevice.value === "" ? null : c.defaultDevice.value,
     explorer_menu: explorerAvailable ? c.explorerMenu.checked : now.explorer_menu,
+    windows11_explorer_menu: windows11MenuAvailable ? c.windows11Menu.checked : now.windows11_explorer_menu,
     disabled_file_managers: disabledManagers(c, snap),
     language: c.lang.value || null,
     app_name: typedName,
@@ -197,6 +204,9 @@ async function save(resetLayout = false): Promise<void> {
     return;
   }
   const state = $("settings-state");
+  // Registering a Windows identity can take a moment; do not toggle it again
+  // while that change is pending.
+  controls().windows11Menu.disabled = true;
   try {
     await invoke("save_settings", { settings });
     // What was saved is what the controls show from now on, without waiting for the state event
@@ -211,6 +221,8 @@ async function save(resetLayout = false): Promise<void> {
   } catch (e) {
     showError(e);
     fillSettings();
+  } finally {
+    controls().windows11Menu.disabled = false;
   }
 }
 

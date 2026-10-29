@@ -18,14 +18,15 @@ pub fn explorer_texts<R: tauri::Runtime>(app: &AppHandle<R>) -> MenuTexts {
 }
 
 #[tauri::command]
-pub fn save_settings<R: tauri::Runtime>(
+pub async fn save_settings<R: tauri::Runtime>(
     app: AppHandle<R>,
-    core: State<Shared>,
+    core: State<'_, Shared>,
     settings: Settings,
 ) -> Result<(), CoreError> {
     let before = core.snapshot().settings;
     let (wanted, disabled) = (settings.explorer_menu, settings.disabled_file_managers.clone());
     let login = settings.launch_at_login;
+    let modern = settings.windows11_explorer_menu;
     core.save_settings(settings)?;
     // The start at the login is written or removed as the setting changes, at once.
     if login != before.launch_at_login
@@ -48,21 +49,40 @@ pub fn save_settings<R: tauri::Runtime>(
         let _ = core.save_settings(kept);
         return Err(error);
     }
+    if modern != before.windows11_explorer_menu {
+        let directory = core.store().windows11_menu_dir();
+        let texts = explorer_texts(&app);
+        let result = tauri::async_runtime::spawn_blocking(move || shell_menu::apply_windows11(modern, &directory, &texts))
+            .await.map_err(|e| CoreError::ExplorerMenu(e.to_string()))
+            .and_then(|result| result);
+        if let Err(error) = result {
+            let mut kept = core.snapshot().settings;
+            kept.windows11_explorer_menu = before.windows11_explorer_menu;
+            let _ = core.save_settings(kept);
+            return Err(error);
+        }
+    }
     Ok(())
 }
 
 /// The texts of the file manager's menu; if the menu is registered it is written again with them.
 #[tauri::command]
-pub fn set_explorer_menu_texts<R: tauri::Runtime>(
+pub async fn set_explorer_menu_texts<R: tauri::Runtime>(
     app: AppHandle<R>,
-    core: State<Shared>,
+    core: State<'_, Shared>,
     texts: MenuTexts,
 ) -> Result<(), CoreError> {
     if let Some(state) = app.try_state::<ExplorerTexts>() {
         *state.0.lock().unwrap() = texts.clone();
     }
     let settings = core.snapshot().settings;
-    if settings.explorer_menu { shell_menu::apply(true, &settings.disabled_file_managers, &texts) } else { Ok(()) }
+    if settings.explorer_menu { shell_menu::apply(true, &settings.disabled_file_managers, &texts)?; }
+    if settings.windows11_explorer_menu {
+        let directory = core.store().windows11_menu_dir();
+        tauri::async_runtime::spawn_blocking(move || shell_menu::apply_windows11(true, &directory, &texts))
+            .await.map_err(|e| CoreError::ExplorerMenu(e.to_string()))??;
+    }
+    Ok(())
 }
 
 /// Whether this system has a start at the login the settings can turn on.
@@ -74,6 +94,11 @@ pub fn launch_at_login_available() -> bool {
 #[tauri::command]
 pub fn explorer_menu_available() -> bool {
     shell_menu::available()
+}
+
+#[tauri::command]
+pub fn windows11_menu_available() -> bool {
+    shell_menu::windows11_available()
 }
 
 /// The file managers of this system that the menu can be written for (none on Windows,

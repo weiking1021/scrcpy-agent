@@ -192,6 +192,8 @@
   "settings.default_device": "預設裝置（「傳送到」與「開啟」使用）",
   "settings.default_device_none": "無（每次詢問）",
   "settings.explorer_menu": "在檔案的右鍵選單加入 {app}",
+  "settings.windows11_menu": "在 Windows 11 新版右鍵選單加入 {app}",
+  "settings.windows11_menu_hint": "直接顯示於新版檔案選單，與「顯示更多選項」分別控制。註冊時可能要求管理員授權，完成後會還原原本的系統設定；變更後可能需要重新開啟檔案總管。",
   "settings.app_name": "程式的名稱",
   "settings.app_name_hint": "顯示在右鍵選單、視窗標題與系統匣的名稱。留空就是標準名稱。",
   "settings.app_name_invalid": "這不是可用的名稱：1 到 40 個字元，不能含 / \\ : * ? \" < > |",

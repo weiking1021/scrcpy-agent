@@ -3420,6 +3420,7 @@ name = "scrcpy-agent"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cc",
  "flate2",
  "mdns-sd",
  "mslnk",

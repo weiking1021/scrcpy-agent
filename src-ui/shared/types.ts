@@ -155,6 +155,8 @@ export interface Settings {
   default_device: string | null;
   /** The entries of the Explorer menu are registered. */
   explorer_menu: boolean;
+  /** The Windows 11 file menu, independent of the legacy menu. */
+  windows11_explorer_menu: boolean;
   /** The file managers of Linux the menu is not written for, though they are there. */
   disabled_file_managers: FileManager[];
   scrcpy_extra_args: string[];
