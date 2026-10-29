@@ -18,6 +18,8 @@ import type { CoreEvent, Device, OpenSupport, RequestItem, RequestView, Snapshot
 
 let devices: Device[] = [];
 let view: RequestView | null = null;
+/** Events received while an IPC snapshot is in flight take precedence over it. */
+let requestRevision = 0;
 /** Closes the window after the end, unless the view changes first. */
 let closeTimer: number | undefined;
 /** The device list is drawn again only for another request, or when the devices change. */
@@ -150,6 +152,12 @@ function setView(next: RequestView | null): void {
   render();
 }
 
+async function refreshRequest(): Promise<void> {
+  const revision = requestRevision;
+  const current = await invoke<RequestView | null>("current_request");
+  if (revision === requestRevision) setView(current);
+}
+
 async function main(): Promise<void> {
   initRipple();
   void initTheme();
@@ -165,8 +173,13 @@ async function main(): Promise<void> {
   // Listen first, then ask what there is now: an event that came in between is newer.
   await listen<CoreEvent>("core-event", (e) => {
     const ev = e.payload;
-    if (ev.kind === "request") setView(ev.data);
-    else if (ev.kind === "state") {
+    if (ev.kind === "request") {
+      requestRevision++;
+      // A close can race a newer request. Ask the core rather than letting an
+      // old null event clear the newer request's automatic-close timer.
+      if (ev.data === null) void refreshRequest().catch(showError);
+      else if (view === null || ev.data.id >= view.id) setView(ev.data);
+    } else if (ev.kind === "state") {
       devices = ev.data.devices;
       // Devices that came or went change the question.
       if (view?.phase === "choosing") {
@@ -175,7 +188,7 @@ async function main(): Promise<void> {
       }
     }
   });
-  setView(await invoke<RequestView | null>("current_request"));
+  await refreshRequest();
 }
 
 main().catch(showError);

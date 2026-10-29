@@ -116,18 +116,23 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
 /// Where the core's events go: to the UI, and to the parts of the shell that
 /// follow them (the tray's list of devices, the small window of a request).
 fn event_sink(handle: AppHandle) -> Sink {
+    // One worker owns request-window changes. Progress can arrive while the
+    // first webview is being made; it must not start another show/close task.
+    let (requests, mut changed) = tokio::sync::watch::channel(());
+    let request_app = handle.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut shown = None;
+        while changed.changed().await.is_ok() {
+            windows::sync_request_window(&request_app, &mut shown);
+        }
+    });
     Arc::new(move |event| {
         // The tray menu lists the devices: it follows the list.
         if let Event::State(snapshot) = &event {
             tray::refresh(&handle, &snapshot.devices);
         }
-        // The small window of a request comes and goes with the request. Windows are
-        // made from a task of their own, not from the thread that sends the event.
-        if let Event::Request(view) = &event {
-            let (app, shown) = (handle.clone(), view.is_some());
-            tauri::async_runtime::spawn(async move {
-                if shown { windows::show_request_window(&app) } else { windows::close_request_window(&app) }
-            });
+        if let Event::Request(_) = &event {
+            requests.send_replace(());
         }
         let _ = handle.emit("core-event", event);
     })
@@ -182,14 +187,13 @@ pub fn run() {
             if let Some(places) = ShortcutPlaces::of_user(app.handle()) {
                 app.manage(places);
             }
-            // The window is made hidden: a start by the login stays in the tray, any other shows it.
+            // A file-manager request has its own window. Only an ordinary start
+            // shows the main window; starting from the tray keeps it hidden.
             let args: Vec<String> = std::env::args().collect();
-            if start_mode(&args) == StartMode::Window {
+            let requested = launch::handle_arguments(app.handle(), &args);
+            if !requested && start_mode(&args) == StartMode::Window {
                 windows::show_main(app.handle());
             }
-            // Started by the Explorer menu or by a shortcut of an app: the request is the
-            // arguments of this start.
-            launch::handle_arguments(app.handle(), &args);
             Ok(())
         })
         .build(tauri::generate_context!())

@@ -160,10 +160,18 @@ impl RequestService {
     /// The window of request `id` is closed (it closed itself, or the user did); a
     /// request that has taken its place is not touched.
     pub fn dismiss_request(&self, id: u64) {
-        let was_shown = self.request.lock().unwrap().as_ref().is_some_and(|v| v.id == id);
-        if was_shown {
-            self.show(None);
+        {
+            let mut current = self.request.lock().unwrap();
+            if current.as_ref().is_none_or(|view| view.id != id) { return; }
+            *current = None;
         }
+        // A close of the window also drops its device question. A newer
+        // request must not be cleared between checking the id and dismissing it.
+        {
+            let mut choice = self.choice.lock().unwrap();
+            if choice.as_ref().is_some_and(|pending| pending.id == id) { *choice = None; }
+        }
+        self.ctx.send(Event::Request(None));
     }
 
     /// The request that waits for a device to be chosen.
@@ -187,7 +195,8 @@ impl RequestService {
 
     /// Drops the request that waits.
     pub fn cancel_choice(&self) {
-        if let Some(pending) = self.choice.lock().unwrap().take() {
+        let pending = self.choice.lock().unwrap().take();
+        if let Some(pending) = pending {
             self.dismiss_request(pending.id);
         }
     }

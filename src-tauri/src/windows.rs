@@ -93,26 +93,42 @@ pub(crate) fn open_device_window<R: tauri::Runtime>(
     Ok(())
 }
 
-/// Shows the small window of the request (makes it the first time).
-pub(crate) fn show_request_window<R: tauri::Runtime>(app: &AppHandle<R>) {
+/// Follows the latest request, not a possibly obsolete event. Called by a
+/// single worker, so an older show cannot run after a newer close.
+pub(crate) fn sync_request_window<R: tauri::Runtime>(app: &AppHandle<R>, shown: &mut Option<u64>) {
+    let Some(core) = app.try_state::<Shared>() else { return };
+    let current = core.requests().current_request().map(|view| view.id);
+    if current == *shown { return; }
+    if current.is_some() {
+        if show_request_window(app).is_ok() { *shown = current; }
+    } else {
+        close_request_window(app);
+        *shown = None;
+    }
+}
+
+/// Shows the small window once per request. Progress only updates its contents.
+fn show_request_window<R: tauri::Runtime>(app: &AppHandle<R>) -> Result<(), tauri::Error> {
     if let Some(window) = app.get_webview_window(REQUEST_WINDOW) {
         let _ = window.show();
         let _ = window.set_focus();
-        return;
+        return Ok(());
     }
-    let _ = tauri::WebviewWindowBuilder::new(app, REQUEST_WINDOW, tauri::WebviewUrl::App("request.html".into()))
+    tauri::WebviewWindowBuilder::new(app, REQUEST_WINDOW, tauri::WebviewUrl::App("request.html".into()))
         .title("scrcpy-agent")
         .inner_size(440.0, 360.0)
         .min_inner_size(360.0, 220.0)
         .center()
         .always_on_top(true)
-        .build();
+        .build()?;
+    Ok(())
 }
 
-/// Closes the small window of a request, if it is open.
-pub(crate) fn close_request_window<R: tauri::Runtime>(app: &AppHandle<R>) {
+/// Keep one webview for later requests. Destroying and immediately recreating
+/// it lets the old Destroyed event cancel the new request.
+fn close_request_window<R: tauri::Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window(REQUEST_WINDOW) {
-        let _ = window.destroy();
+        let _ = window.hide();
     }
 }
 
@@ -142,6 +158,16 @@ pub(crate) fn show_main<R: tauri::Runtime>(app: &AppHandle<R>) {
 
 pub(crate) fn on_window_event<R: tauri::Runtime>(window: &tauri::Window<R>, event: &tauri::WindowEvent) {
     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+        if window.label() == REQUEST_WINDOW {
+            api.prevent_close();
+            if let Some(core) = window.try_state::<Shared>()
+                && let Some(view) = core.requests().current_request()
+            {
+                core.requests().dismiss_request(view.id);
+            }
+            let _ = window.hide();
+            return;
+        }
         let close_to_tray = window.try_state::<Shared>().is_some_and(|core| core.snapshot().settings.close_to_tray);
         if close_action(window.label(), close_to_tray) == CloseAction::HideToTray {
             api.prevent_close();
