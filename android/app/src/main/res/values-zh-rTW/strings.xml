@@ -1,0 +1,9 @@
+<resources>
+  <string name="connecting">正在連線並啟動遠端畫面…</string>
+  <string name="share_send_choose">傳送到指定裝置 · ScrcpyAgent</string>
+  <string name="share_send_default">傳送到預設裝置 · ScrcpyAgent</string>
+  <string name="share_open_choose">在指定裝置上開啟 · ScrcpyAgent</string>
+  <string name="share_open_default">在預設裝置上開啟 · ScrcpyAgent</string>
+  <string name="share_no_files">這次分享沒有包含檔案。</string>
+  <string name="share_failed">無法接收分享的檔案：%1$s</string>
+</resources>

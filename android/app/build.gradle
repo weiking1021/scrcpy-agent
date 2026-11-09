@@ -1,0 +1,81 @@
+// Applied by Tauri's Android host; platform dependencies and server assets only.
+def cargo = rootProject.file('../../Cargo.toml').text
+def appVersion = (cargo =~ /(?m)^version\s*=\s*"([^"]+)"/)[0][1]
+def versions = rootProject.file('../../src/core/scrcpy/versions.rs').text
+def serverTag = (versions =~ /DEFAULT_TAG:\s*&str\s*=\s*"([^"]+)"/)[0][1]
+def serverVersion = serverTag.substring(1)
+def numbers = appVersion.tokenize('.').collect { it.toInteger() }
+def serverAssets = layout.buildDirectory.dir('generated/scrcpy')
+
+android {
+    defaultConfig {
+        targetSdk 35
+        versionCode numbers[0] * 1000000 + numbers[1] * 1000 + numbers[2]
+        versionName appVersion
+        buildConfigField 'String', 'SCRCPY_VERSION', '"' + serverVersion + '"'
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildTypes {
+        // Deliberately unsigned, including debug: no signing key is generated.
+        debug { signingConfig = null }
+        release { signingConfig = null; minifyEnabled false }
+    }
+    sourceSets.main.assets.srcDir(serverAssets.get().asFile)
+    sourceSets.main.java.srcDir(rootProject.file('../../../android/app/src/main/java'))
+    sourceSets.main.res.srcDir(rootProject.file('../../../android/app/src/main/res'))
+    sourceSets.main.manifest.srcFile(rootProject.file('../../../android/app/src/main/AndroidManifest.xml'))
+    sourceSets.test.java.srcDir(rootProject.file('../../../android/app/src/test/java'))
+    packaging {
+        resources.excludes += ['META-INF/versions/**', 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA']
+        jniLibs.useLegacyPackaging = true
+    }
+}
+
+// Match the JNI verifier shipped with reqwest, using Cargo.lock as the source.
+def lock = rootProject.file('../../Cargo.lock').text
+def verifierVersion = (lock =~ /(?s)name = "rustls-platform-verifier-android"\s+version = "([^"]+)"/)[0][1]
+repositories {
+    maven {
+        url 'https://raw.githubusercontent.com/rustls/rustls-platform-verifier/maven-archive/android-release-support/maven/'
+        content { includeGroup 'org.rustls' }
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    implementation "org.rustls:rustls-platform-verifier:${verifierVersion}"
+    implementation 'com.github.MuntashirAkon:libadb-android:3.1.1'
+    implementation 'org.conscrypt:conscrypt-android:2.5.3'
+    implementation 'org.bouncycastle:bcpkix-jdk15to18:1.81'
+}
+
+// The APK carries the official server matching the desktop protocol version.
+// Download at build time, verify its release checksum, and never use a local
+// scrcpy installation or any developer-specific path.
+tasks.register('prepareScrcpyServer') {
+    inputs.property('serverTag', serverTag)
+    outputs.dir(serverAssets)
+    doLast {
+        def base = "https://github.com/Genymobile/scrcpy/releases/download/${serverTag}/"
+        def asset = "scrcpy-server-${serverTag}"
+        def fetch = { String url ->
+            def connection = new URI(url).toURL().openConnection()
+            connection.connectTimeout = 30000
+            connection.readTimeout = 60000
+            connection.setRequestProperty('User-Agent', 'scrcpy-agent-android-build')
+            connection.inputStream.withCloseable { it.bytes }
+        }
+        def sums = new String(fetch(base + 'SHA256SUMS.txt'), 'UTF-8')
+        def line = sums.readLines().find { it.trim().split(/\s+/).last().replaceFirst(/^\*/, '') == asset }
+        if (line == null) throw new GradleException("No checksum for ${asset}")
+        def expected = line.trim().split(/\s+/)[0].toLowerCase(Locale.ROOT)
+        def bytes = fetch(base + asset)
+        def actual = java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+        if (actual != expected) throw new GradleException('scrcpy server checksum mismatch')
+        def folder = serverAssets.get().asFile
+        folder.mkdirs()
+        new File(folder, 'scrcpy-server.jar').bytes = bytes
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'prepareScrcpyServer' }

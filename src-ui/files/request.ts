@@ -168,7 +168,11 @@ async function main(): Promise<void> {
   setLanguage(snapshot.settings.language);
   setAppName(snapshot.settings.app_name);
   translateDom();
-  await getCurrentWindow().setTitle(t("request.window_title"));
+  if (await invoke<string>("host_platform") !== "android") {
+    await getCurrentWindow().setTitle(t("request.window_title"));
+  } else {
+    document.documentElement.dataset.platform = "android";
+  }
 
   // Listen first, then ask what there is now: an event that came in between is newer.
   await listen<CoreEvent>("core-event", (e) => {

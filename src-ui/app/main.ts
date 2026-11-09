@@ -15,6 +15,7 @@ import { suppressNativeContextMenu } from "../shared/contextmenu";
 import { loadUserPacks, setLanguage, translateDom } from "../shared/i18n";
 import { initRipple } from "../shared/ripple";
 import { initTheme } from "../shared/theme";
+import { initPlatform } from "../shared/platform";
 import { showError, toast } from "../shared/toast";
 import type { CoreEvent, Snapshot } from "../shared/types";
 import { applyIdentity } from "./identity";
@@ -45,6 +46,7 @@ function onState(next: Snapshot): void {
 }
 
 async function main(): Promise<void> {
+  await initPlatform();
   initRipple();
   void initTheme();
   await loadUserPacks();

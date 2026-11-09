@@ -39,6 +39,7 @@ pub fn apply_windows11(enabled: bool, directory: &std::path::Path, texts: &MenuT
 }
 
 /// The kind of shortcut of apps this system has; `None` where there are none.
+#[cfg(not(target_os = "android"))]
 pub fn shortcut_kind() -> Option<ShortcutKind> {
     ShortcutKind::of(Os::current())
 }

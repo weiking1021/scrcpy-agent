@@ -21,7 +21,10 @@ pub async fn open_app<R: tauri::Runtime>(
     display: Option<AppDisplay>,
 ) -> Result<(), CoreError> {
     let opened = core.apps().open_app(&device, &package, &name, display).await?;
+    #[cfg(not(target_os = "android"))]
     crate::toolbar_window::keep_app_toolbar(app, core.inner().clone(), opened);
+    #[cfg(target_os = "android")]
+    let _ = (app, opened);
     Ok(())
 }
 

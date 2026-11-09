@@ -100,9 +100,11 @@ impl DeviceService {
         // The adb program only brings the server up; everything else is said
         // to the server itself.
         let process = ProcessAdb { path: installed.adb() };
-        while let Err(e) = self.bring_up_adb(&process).await {
-            self.ctx.notice(NoticeLevel::Error, NoticeCode::AdbStartFailed, format!("{e:#}"), None);
-            tokio::time::sleep(Duration::from_secs(10)).await;
+        if self.ctx.scrcpy_host.manages_adb_server() {
+            while let Err(e) = self.bring_up_adb(&process).await {
+                self.ctx.notice(NoticeLevel::Error, NoticeCode::AdbStartFailed, format!("{e:#}"), None);
+                tokio::time::sleep(Duration::from_secs(10)).await;
+            }
         }
 
         let me = self.clone();
@@ -147,7 +149,9 @@ impl DeviceService {
                         format!("could not look at the devices: {e:#}"),
                     );
                     // The adb server may have been killed; bring it back.
-                    let _ = self.bring_up_adb(&process).await;
+                    if self.ctx.scrcpy_host.manages_adb_server() {
+                        let _ = self.bring_up_adb(&process).await;
+                    }
                 }
             }
             tokio::select! {

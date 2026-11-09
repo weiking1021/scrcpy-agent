@@ -261,6 +261,7 @@
   "nav.collapse": "收合",
   "files.hint": "這個程式啟動之後傳送到裝置的檔案。",
   "files.empty": "還沒有傳送過檔案。把檔案拖到裝置上，或用檔案的右鍵選單。",
+  "files.empty_mobile": "還沒有傳送過檔案。從其他 App 分享檔案，再選擇 ScrcpyAgent 的操作。",
   "card.details": "詳細資料",
   "devices.group_paired": "已配對（{count}）",
   "devices.group_strangers": "陌生裝置（{count}）",

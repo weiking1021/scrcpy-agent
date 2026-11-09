@@ -9,7 +9,7 @@ use crate::core::error::CoreError;
 use crate::core::log::{LogCode, LogLevel};
 use crate::core::model::{AppUsage, MAX_RECENT_APPS, ScrcpyMode};
 use crate::core::scrcpy::service::{OpenedWindow, SessionService};
-use crate::core::scrcpy::session::{self, LaunchSpec};
+use crate::core::scrcpy::{session, host::{AppLaunch, Query, SessionSpec}};
 use crate::core::device::display;
 use crate::core::store;
 use std::sync::Arc;
@@ -38,8 +38,7 @@ impl AppService {
     pub async fn list_apps(&self, device_id: &str) -> Result<Vec<AppEntry>, CoreError> {
         let (serial, _) = self.ctx.online_device(device_id)?;
         let (install, protocol) = self.ctx.app_protocol()?;
-        let args = protocol.list_apps_args(&serial);
-        let output = session::run_to_end(&install, &args, LIST_APPS_LIMIT).await?;
+        let output = self.ctx.scrcpy_host.query(install, Query::Apps { serial }, LIST_APPS_LIMIT).await?;
         let mut text = String::from_utf8_lossy(&output.stdout).into_owned();
         text.push('\n');
         text.push_str(&String::from_utf8_lossy(&output.stderr));
@@ -120,7 +119,7 @@ impl AppService {
     ) -> Result<OpenedWindow, CoreError> {
         let package = PackageName::parse(package).ok_or(CoreError::InvalidPackage)?;
         let (serial, device_name) = self.ctx.online_device(device_id)?;
-        let (install, protocol) = self.ctx.app_protocol()?;
+        let (install, _) = self.ctx.app_protocol()?;
         let key = format!("{device_id}#app:{}", package.as_str());
         let (sdk, extra_args, keyboard, bit_rate, max_size, display_of_device, keep_awake, mode, toolbar) =
             self.ctx.with_state(|i| {
@@ -151,20 +150,15 @@ impl AppService {
         } else {
             None
         };
-        let keep_awake = keep_awake && self.sessions.claim_keep_awake(device_id, &key);
         let shown = if name.trim().is_empty() { package.as_str() } else { name.trim() };
-        let mut spec = LaunchSpec {
+        let spec = SessionSpec {
             serial,
             title: session::app_window_title(shown, &device_name, device_id),
             sdk,
-            proxy_args: Vec::new(),
-            app_args: protocol.start_app_args(&package, display, size, keep_awake),
-            option_args: [
-                protocol.keyboard_args(keyboard),
-                protocol.video_bit_rate_args(bit_rate),
-                protocol.max_size_args(max_size),
-            ]
-            .concat(),
+            app: Some(AppLaunch { package: package.clone(), display, size, keep_awake }),
+            keyboard,
+            bit_rate,
+            max_size,
             extra_args,
         };
         // The toolbar of the window acts through the control socket (a command through
@@ -176,13 +170,7 @@ impl AppService {
         } else {
             None
         };
-        if let Some((_, args)) = &proxy {
-            spec.proxy_args = args.clone();
-        }
-        let opened = self.sessions.run_session(&key, device_id, &install, spec, proxy);
-        if opened.is_err() && keep_awake {
-            self.sessions.release_keep_awake(device_id);
-        }
+        let opened = self.sessions.run_session(&key, device_id, &install, spec, proxy).await;
         if opened.is_ok() {
             self.record_recent_app(device_id, &package);
         }

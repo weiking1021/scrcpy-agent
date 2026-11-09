@@ -33,6 +33,11 @@ const DEFAULT_ADB_SERVER: SocketAddr = SocketAddr::new(std::net::IpAddr::V4(std:
 /// are what the application uses; the integration tests change them.
 #[derive(Default)]
 pub struct CoreOptions {
+    /// Process, server-query and presentation implementation supplied by the host.
+    pub scrcpy_host: Option<Arc<dyn super::scrcpy::host::ScrcpyHost>>,
+    /// The Android host supplies direct adbd access instead of a desktop adb server.
+    #[cfg(target_os = "android")]
+    pub android: Option<super::adb::android::AndroidAdb>,
     /// Use this scrcpy install instead of looking one up and downloading it.
     pub preinstalled: Option<Installed>,
     /// Do not start our own mDNS browser; only adb's list is used.
@@ -61,6 +66,7 @@ pub(crate) struct State {
 }
 
 pub(crate) struct Ctx {
+    pub scrcpy_host: Arc<dyn super::scrcpy::host::ScrcpyHost>,
     pub options: CoreOptions,
     pub store: Store,
     pub sink: Sink,
@@ -86,6 +92,7 @@ impl Ctx {
         let settings = store.global().load::<store::Settings>();
         let devices = super::discovery::build_devices(&[], &[], &Default::default(), &known);
         Arc::new(Ctx {
+            scrcpy_host: options.scrcpy_host.clone().unwrap_or_else(super::scrcpy::host::system_host),
             adb_backend: Arc::new(Mutex::new(settings.adb_backend)),
             state: Mutex::new(State {
                 scrcpy: ScrcpyStatus::Checking,
@@ -200,6 +207,9 @@ impl Ctx {
     /// How the application talks to adb: the way the user's setting says, read
     /// at every call (see `adb::select`). Callers only see `AdbApi`.
     pub fn make_adb(&self, installed: &Installed) -> ConfiguredAdb {
+        #[cfg(target_os = "android")]
+        { let _ = installed; self.options.android.clone().expect("Android ADB host") }
+        #[cfg(not(target_os = "android"))]
         ConfiguredAdb::new(self.adb_backend.clone(), self.adb_server(), installed.adb())
     }
 

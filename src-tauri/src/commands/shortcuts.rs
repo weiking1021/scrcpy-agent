@@ -3,11 +3,13 @@
 use crate::Shared;
 use crate::core::apps::PackageName;
 use crate::core::error::CoreError;
+#[cfg(not(target_os = "android"))]
 use crate::core::integration::file_manager_menu::data_home;
 use crate::core::integration::shortcuts::{
     ShortcutKind, ShortcutPlace, ShortcutRecord, ShortcutRecords, arguments, display_name, file_name,
 };
 use crate::core::store;
+#[cfg(not(target_os = "android"))]
 use crate::core::window::layout::Os;
 use crate::shell_menu;
 use serde::Serialize;
@@ -29,7 +31,11 @@ pub struct ShortcutPlaces {
 }
 
 impl ShortcutPlaces {
+    #[cfg(target_os = "android")]
+    pub fn of_user<R: tauri::Runtime>(_app: &AppHandle<R>) -> Option<Self> { None }
+
     /// The folders of the user on this system; `None` where there are none.
+    #[cfg(not(target_os = "android"))]
     pub fn of_user<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<Self> {
         let kind = shell_menu::shortcut_kind()?;
         let desktop = app.path().desktop_dir().ok()?;

@@ -6,8 +6,9 @@
 #   A .deb package:                      docker build --target export-deb --output type=local,dest=out .
 #                                        -> out/scrcpy-agent_<version>_amd64.deb
 #   Both (one build):                    docker build --target export-linux --output type=local,dest=out .
-#   Everything, with the Windows packages too, in one command: `npm run package` (scripts/package.mjs,
-#   which asks for `export-linux` and `export-windows`: keep its list in step with the targets here).
+#   The unsigned Android APK:            docker build --target export-android --output type=local,dest=out .
+#   Everything in one command: `npm run package` (scripts/package.mjs asks for `export-linux`,
+#   `export-windows` and `export-android`: keep its list in step with the targets here).
 #
 # The executable needs the system libraries of Tauri on the machine that runs it
 # (WebKitGTK 4.1 and the Ayatana app indicator; see "runtime" below).
@@ -124,6 +125,55 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 FROM scratch AS export-windows
 COPY --from=windows /packages /
+
+# ---------------------------------------------------------------- Android proof of concept
+# Native Android viewer: direct wireless ADB, scrcpy-server and MediaCodec.
+# assembleRelease has no signingConfig; no debug or release key is generated.
+FROM gradle:8.11.1-jdk17 AS android-tools
+USER root
+ENV ANDROID_HOME=/opt/android-sdk GRADLE_USER_HOME=/root/.gradle
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o /tmp/android-tools.zip \
+ && echo '7ec965280a073311c339e571cd5de778b9975026cfcbe79f2b1cdcb1e15317ee  /tmp/android-tools.zip' | sha256sum -c - \
+ && mkdir -p "$ANDROID_HOME/cmdline-tools" \
+ && unzip -q /tmp/android-tools.zip -d "$ANDROID_HOME/cmdline-tools" \
+ && mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest" \
+ && rm /tmp/android-tools.zip \
+ && yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null \
+ && "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs build-essential pkg-config \
+ && rm -rf /var/lib/apt/lists/*
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
+ENV NDK_HOME=/opt/android-sdk/ndk/28.0.13004108
+ENV PATH="/usr/local/cargo/bin:${PATH}"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --target aarch64-linux-android \
+ && "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;28.0.13004108'
+
+FROM android-tools AS android
+RUN apt-get update && apt-get install -y --no-install-recommends libclang-dev \
+ && rm -rf /var/lib/apt/lists/*
+ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--sysroot=/opt/android-sdk/ndk/28.0.13004108/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+ENV CARGO_BUILD_JOBS=2
+RUN --mount=type=cache,target=/root/.gradle \
+    --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/src-tauri/target \
+    npm run tauri -- android build --target aarch64 --apk --ci \
+ && apk=$(find src-tauri/gen/android/app/build/outputs/apk -name '*release-unsigned.apk' | head -n1) \
+ && test -n "$apk" \
+ && if "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$apk" >/dev/null 2>&1; then \
+      echo 'The Android APK must remain unsigned.' >&2; exit 1; fi \
+ && version=$(sed -nE 's/^version = "([^"]+)".*/\1/p' src-tauri/Cargo.toml | head -n1) \
+ && mkdir /packages \
+ && cp "$apk" "/packages/scrcpy-agent_${version}_android_unsigned.apk"
+
+FROM scratch AS export-android
+COPY --from=android /packages /
 
 # What a machine needs to run it (Debian/Ubuntu names):
 #   libwebkit2gtk-4.1-0 libayatana-appindicator3-1 libgtk-3-0

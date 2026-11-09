@@ -1,7 +1,6 @@
 //! Launching the official scrcpy client for one device (official mode).
 
 use super::manager::Installed;
-use super::protocol::StreamPlan;
 use anyhow::{Context, Result};
 use std::collections::VecDeque;
 use std::process::Stdio;
@@ -33,20 +32,6 @@ pub struct LaunchSpec {
     /// arguments are those of the scrcpy version's protocol adapter.
     pub app_args: Vec<String>,
     pub extra_args: Vec<String>,
-}
-
-impl LaunchSpec {
-    /// Which sockets scrcpy will open with these arguments.
-    pub fn stream_plan(&self) -> StreamPlan {
-        // Only the exact argument counts.
-        let given = |argument: &str| self.extra_args.iter().any(|a| a == argument);
-        StreamPlan {
-            video: !given("--no-video"),
-            // `build_args` adds `--no-audio` before Android 11.
-            audio: !self.sdk.is_some_and(|s| s < MIN_AUDIO_SDK) && !given("--no-audio"),
-            control: !given("--no-control"),
-        }
-    }
 }
 
 pub fn build_args(spec: &LaunchSpec) -> Vec<String> {
@@ -198,8 +183,13 @@ mod tests {
 
     #[test]
     fn the_sockets_scrcpy_opens_follow_from_its_arguments_and_the_android_version() {
+        use crate::core::{scrcpy::{host::SessionSpec, protocol::StreamPlan}, model::{KeyboardMode, BitRateMbps, MaxSize}};
         let plan = |sdk, extra: &[&str]| {
-            LaunchSpec { sdk, extra_args: extra.iter().map(|a| a.to_string()).collect(), ..spec(sdk) }.stream_plan()
+            SessionSpec {
+                serial: "test-device".into(), title: "Test screen".into(), sdk, app: None,
+                keyboard: KeyboardMode::default(), bit_rate: BitRateMbps::default(), max_size: MaxSize::default(),
+                extra_args: extra.iter().map(|a| a.to_string()).collect(),
+            }.stream_plan()
         };
         let all = StreamPlan { video: true, audio: true, control: true };
         assert_eq!(plan(Some(34), &[]), all);

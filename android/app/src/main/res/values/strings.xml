@@ -1,0 +1,9 @@
+<resources>
+  <string name="connecting">Connecting and starting the remote screen…</string>
+  <string name="share_send_choose">Send to a device · ScrcpyAgent</string>
+  <string name="share_send_default">Send to default device · ScrcpyAgent</string>
+  <string name="share_open_choose">Open on a device · ScrcpyAgent</string>
+  <string name="share_open_default">Open on default device · ScrcpyAgent</string>
+  <string name="share_no_files">The share does not contain any files.</string>
+  <string name="share_failed">Could not receive shared files: %1$s</string>
+</resources>

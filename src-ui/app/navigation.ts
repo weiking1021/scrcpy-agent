@@ -50,7 +50,8 @@ export function setupNavigation(): void {
   const sidebar = $("sidebar");
   const key = "sidebar-collapsed";
   try {
-    if (localStorage.getItem(key) === "1") setFolded(sidebar, true, false);
+    const saved = localStorage.getItem(key);
+    if (saved === "1" || (saved === null && matchMedia("(max-width: 560px)").matches)) setFolded(sidebar, true, false);
   } catch {
     // Without storage the sidebar starts open.
   }

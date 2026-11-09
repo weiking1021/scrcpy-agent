@@ -13,6 +13,9 @@ use tauri::{AppHandle, Manager, State};
 /// The texts of the file manager's menu in the user's language, as the UI last sent them.
 pub struct ExplorerTexts(pub std::sync::Mutex<MenuTexts>);
 
+#[tauri::command]
+pub fn host_platform() -> &'static str { std::env::consts::OS }
+
 pub fn explorer_texts<R: tauri::Runtime>(app: &AppHandle<R>) -> MenuTexts {
     app.try_state::<ExplorerTexts>().map(|t| t.0.lock().unwrap().clone()).unwrap_or_default()
 }

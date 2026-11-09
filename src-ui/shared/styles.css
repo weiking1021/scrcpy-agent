@@ -178,7 +178,7 @@ input[type="checkbox"] { width: auto; }
 
 /* ------------------------------------------------------------ the window: sidebar and page */
 
-body.app { display: flex; height: 100vh; overflow: hidden; }
+body.app { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
 
 /* Open, the sidebar is as wide as the setting. Folded, it is as wide as what is left in it: the labels are
    gone, so an icon with the padding and the frame the entries have, whatever a theme makes them, and the
@@ -285,7 +285,7 @@ main { padding: 8px 24px 32px; }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -422,6 +422,15 @@ main { padding: 8px 24px 32px; }
   .setting { grid-template-columns: 1fr; }
   .setting-control { justify-content: flex-start; }
 }
+
+@media (max-width: 560px) {
+  .page-head { padding: 12px; gap: 8px; flex-wrap: wrap; }
+  main { padding: 8px 12px 24px; }
+  .kv-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+.mobile-back { display: flex; align-items: center; gap: 8px; padding: 8px 16px; color: var(--accent); }
+.mobile-back svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+html[data-platform="android"] [hidden] { display: none !important; }
 
 /* A switch, for the settings that are on or off. */
 input[type="checkbox"][role="switch"] {

@@ -1,0 +1,10 @@
+{
+  "identifier": "io.github.weiking1021.scrcpyagent.android",
+  "app": {
+    "windows": [{ "label": "main", "title": "ScrcpyAgent", "visible": true }],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' theme: http://theme.localhost https://theme.localhost; img-src 'self' data: theme: http://theme.localhost https://theme.localhost; font-src 'self' data: theme: http://theme.localhost https://theme.localhost; connect-src ipc: http://ipc.localhost https://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    }
+  },
+  "bundle": { "android": { "minSdkVersion": 30 } }
+}

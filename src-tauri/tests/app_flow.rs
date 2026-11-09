@@ -616,6 +616,7 @@ impl Harness {
                 disable_own_mdns: true,
                 adb_server: Some(adb_server.address),
                 poll_interval: scenario.poll_interval,
+                ..Default::default()
             },
         );
 
@@ -1609,6 +1610,38 @@ fn set_default_device(h: &Harness, device: Option<&str>) {
     let mut settings = h.ipc("get_snapshot", Value::Null).unwrap()["settings"].clone();
     settings["default_device"] = json!(device);
     assert_eq!(h.ipc("save_settings", json!({ "settings": settings })), Ok(Value::Null));
+}
+
+struct ImportedSource(std::path::PathBuf);
+impl Drop for ImportedSource {
+    fn drop(&mut self) { std::fs::remove_file(&self.0).unwrap(); }
+}
+
+#[test]
+fn imported_sources_are_kept_while_choosing_and_released_when_cancelled() {
+    use scrcpy_agent_lib::core::requests::shell_request::ShellAction;
+    let h = Harness::start("import-cancel", Scenario::usb_device());
+    h.wait_for_online_device();
+    let file = std::path::PathBuf::from(local_file("import-cancel", "note.txt", b"shared"));
+    h.block_on(h.core.requests().handle_shell_with_resource(
+        ShellAction::SendChoose, vec![file.clone()], ImportedSource(file.clone())));
+    assert!(file.exists());
+    assert!(h.adb_server.pushed().is_empty());
+    h.core.requests().cancel_choice();
+    assert!(!file.exists());
+}
+
+#[test]
+fn imported_sources_are_released_only_after_their_files_reach_the_device() {
+    use scrcpy_agent_lib::core::requests::shell_request::ShellAction;
+    let h = Harness::start("import-send", Scenario::usb_device());
+    let id = h.wait_for_online_device();
+    set_default_device(&h, Some(&id));
+    let file = std::path::PathBuf::from(local_file("import-send", "shared.txt", b"shared content"));
+    h.block_on(h.core.requests().handle_shell_with_resource(
+        ShellAction::SendDefault, vec![file.clone()], ImportedSource(file.clone())));
+    wait_until("the import lease to end", || !file.exists());
+    assert_eq!(h.adb_server.pushed()["/sdcard/Download/scrcpy-agent/shared.txt"], b"shared content");
 }
 
 #[test]

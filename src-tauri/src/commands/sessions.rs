@@ -24,6 +24,8 @@ pub(crate) async fn open_screen<R: tauri::Runtime>(
     id: &str,
 ) -> Result<(), CoreError> {
     let opened = core.sessions().open(id).await?;
+    #[cfg(not(target_os = "android"))]
+    {
     let toolbar = core.snapshot().settings.toolbar;
     if toolbar.enabled {
         tauri::async_runtime::spawn(crate::toolbar_window::keep_toolbar(
@@ -34,6 +36,9 @@ pub(crate) async fn open_screen<R: tauri::Runtime>(
             toolbar,
         ));
     }
+    }
+    #[cfg(target_os = "android")]
+    let _ = (app, opened);
     Ok(())
 }
 

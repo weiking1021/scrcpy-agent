@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name" translatable="false">"scrcpy-agent"</string>
+    <string name="main_activity_title" translatable="false">"scrcpy-agent"</string>
+</resources>

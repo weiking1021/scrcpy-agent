@@ -80,6 +80,8 @@ pub enum ControlMessage {
     ExpandSettingsPanel,
     CollapsePanels,
     RotateDevice,
+    ResetVideo,
+    StartApp { package: PackageName },
 }
 
 /// Which sockets a scrcpy was started with: they are opened in the order video,
@@ -158,6 +160,15 @@ pub trait VideoStreamParser: Send {
 pub trait ScrcpyProtocol: Send + Sync {
     /// The versions this adapter has been checked against with real traffic.
     fn supported_versions(&self) -> &'static [ScrcpyVersion];
+
+    /// Server-side options for a native presenter, rather than desktop client flags.
+    fn server_options(&self, _spec: &super::host::SessionSpec) -> Result<Vec<String>, ProtocolError> {
+        Err(ProtocolError::UnsupportedControlMessage)
+    }
+
+    fn app_list_server_options(&self) -> Result<Vec<String>, ProtocolError> {
+        Err(ProtocolError::UnsupportedControlMessage)
+    }
 
     fn video_parser(&self, start: VideoStreamStart) -> Box<dyn VideoStreamParser>;
 

@@ -1,11 +1,11 @@
 // Builds every package into `out/`, with Docker: the Linux program and the .deb
-// (one build), and the Windows installer and portable zip; and the types package of the add-ons
+// (one build), the Windows installer and portable zip, the unsigned Android APK; and the types package of the add-ons
 // (`addon-api/`, a .tgz made by `npm pack`). Run with `npm run package`.
 //
-// The two builds run at the same time by default. On machines with less memory,
+// The three builds run at the same time by default. On machines with less memory,
 // `npm run package -- --sequential` runs them one after the other. `out/` ends
 // with only what this run built: each build exports into a folder of its own, and `out/`
-// is replaced only when both succeeded, so a failed build leaves the previous packages as
+// is replaced only when all succeeded, so a failed build leaves the previous packages as
 // they were. The exit code is not 0 when any build failed (a CI job then fails).
 
 import { execFileSync, spawn } from "node:child_process";
@@ -20,6 +20,7 @@ const sequential = process.argv.includes("--sequential");
 const BUILDS = [
   { target: "export-linux", folder: "out.tmp-linux", name: "linux  " },
   { target: "export-windows", folder: "out.tmp-windows", name: "windows" },
+  { target: "export-android", folder: "out.tmp-android", name: "android" },
 ];
 
 /** Runs one build and resolves with its exit code (a program that cannot be started is 1). */

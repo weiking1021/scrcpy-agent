@@ -10,6 +10,7 @@ import { $ } from "../../shared/dom";
 import { loadUserPacks, setAppName, setLanguage, translateDom } from "../../shared/i18n";
 import { initRipple } from "../../shared/ripple";
 import { initTheme } from "../../shared/theme";
+import { initPlatform } from "../../shared/platform";
 import type { CoreEvent, Snapshot } from "../../shared/types";
 import { loadApps, loadUsage, renderApps, setupApps } from "./apps";
 import { renderAddons, renderHeader, setupHeader } from "./header";
@@ -80,9 +81,10 @@ function onState(next: Snapshot): void {
 }
 
 async function main(): Promise<void> {
+  await initPlatform();
   initRipple();
   void initTheme();
-  const id = deviceIdFromLabel(getCurrentWindow().label);
+  const id = new URLSearchParams(location.search).get("device") ?? deviceIdFromLabel(getCurrentWindow().label);
   if (id === null) {
     document.body.textContent = "?";
     return;

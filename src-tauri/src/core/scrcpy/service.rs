@@ -5,14 +5,16 @@
 use super::manager::Installed;
 use super::protocol::{self, ControlMessage, ScrcpyProtocol};
 use super::proxy::{Proxy, VideoSubscription};
-use super::session::{self, LaunchSpec};
+use super::session;
+use super::host::SessionSpec;
 use super::version::ScrcpyVersion;
 use crate::core::addons::buttons::{self, ButtonHandler, ButtonId, ButtonRegistry, RegisterError, ToolbarButton};
 use crate::core::apps::SessionKey;
 use crate::core::context::Ctx;
 use crate::core::error::CoreError;
 use crate::core::log::{LogCode, LogLevel};
-use crate::core::model::{BitRateMbps, DeviceState, KeyboardMode, MaxSize, NoticeCode, NoticeLevel, ScrcpyMode};
+use crate::core::model::{BitRateMbps, DeviceState, KeyboardMode, MaxSize, NoticeCode, NoticeLevel};
+use crate::core::model::ScrcpyMode;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -65,7 +67,7 @@ impl SessionService {
     /// Opens the scrcpy window of a device. `async` on purpose: it starts a
     /// child process and a task, which need the Tokio runtime to be running.
     pub async fn open(self: &Arc<Self>, id: &str) -> Result<OpenedWindow, CoreError> {
-        let (install, mut spec, sdk, mode, keyboard, bit_rate, max_size) = self.ctx.with_state(|i| {
+        let (install, spec, mode) = self.ctx.with_state(|i| {
             let install = i.installed.clone().ok_or(CoreError::NotReady)?;
             if i.sessions.contains(id) {
                 return Err(CoreError::AlreadyOpen);
@@ -76,56 +78,57 @@ impl SessionService {
                 _ => return Err(CoreError::NotOnline),
             };
             let shown_name = dev.label.as_deref().unwrap_or(&dev.name);
-            let spec = LaunchSpec {
+            let own = i.known.iter().find(|k| k.id == id).map(|k| k.settings.clone()).unwrap_or_default();
+            let spec = SessionSpec {
                 serial,
                 title: session::window_title(shown_name, &dev.id),
                 sdk: dev.sdk,
-                proxy_args: Vec::new(),
-                app_args: Vec::new(),
-                option_args: Vec::new(),
+                app: None,
+                keyboard: own.keyboard_mode.unwrap_or(i.settings.keyboard_mode),
+                bit_rate: own.video_bit_rate_mbps.unwrap_or(i.settings.video_bit_rate_mbps),
+                max_size: own.max_size,
                 extra_args: i.settings.scrcpy_extra_args.clone(),
             };
-            // What is set for this device wins over the general settings.
-            let own = i.known.iter().find(|k| k.id == id).map(|k| k.settings.clone()).unwrap_or_default();
-            Ok((
-                install,
-                spec,
-                dev.sdk,
-                i.settings.scrcpy_mode,
-                own.keyboard_mode.unwrap_or(i.settings.keyboard_mode),
-                own.video_bit_rate_mbps.unwrap_or(i.settings.video_bit_rate_mbps),
-                own.max_size,
-            ))
+            Ok((install, spec, i.settings.scrcpy_mode))
         })?;
-        if sdk.is_some_and(|s| s < session::MIN_AUDIO_SDK) {
+        if spec.sdk.is_some_and(|s| s < session::MIN_AUDIO_SDK) {
             self.ctx.notice(NoticeLevel::Info, NoticeCode::AudioUnavailable, "", Some(id.to_string()));
         }
-        spec.option_args = self.option_args(id, &install, keyboard, bit_rate, max_size);
+        self.check_options(id, &install, spec.keyboard, spec.bit_rate, spec.max_size);
         let proxy = if mode == ScrcpyMode::Proxy { self.start_proxy(&install, &spec, id).await } else { None };
-        if let Some((_, args)) = &proxy {
-            spec.proxy_args = args.clone();
-        }
-        self.run_session(id, id, &install, spec, proxy)
+        self.run_session(id, id, &install, spec, proxy).await
     }
 
     /// Starts scrcpy for a session and keeps track of it until it ends. `key`
     /// names the session (the device id for its own screen), `device_id` is the
     /// device it belongs to, for the notices.
-    pub(crate) fn run_session(
+    pub(crate) async fn run_session(
         self: &Arc<Self>,
         key: &str,
         device_id: &str,
         install: &Installed,
-        spec: LaunchSpec,
+        mut spec: SessionSpec,
         proxy: Option<(Proxy, Vec<String>)>,
     ) -> Result<OpenedWindow, CoreError> {
-        // (if scrcpy cannot be started, the proxy is dropped with the error)
-        let running = session::spawn(install, &spec)?;
+        if !self.ctx.with_state(|i| i.sessions.insert(key.to_string())) { return Err(CoreError::AlreadyOpen); }
+        if let Some(app) = &mut spec.app {
+            app.keep_awake = app.keep_awake && self.claim_keep_awake(device_id, key);
+        }
+        self.ctx.emit();
         let title = spec.title.clone();
+        let proxy_args = proxy.as_ref().map(|(_, args)| args.clone()).unwrap_or_default();
+        let running = match self.ctx.scrcpy_host.start(key.into(), install.clone(), spec, proxy_args).await {
+            Ok(running) => running,
+            Err(error) => {
+                self.ctx.with_state(|i| i.sessions.remove(key));
+                self.awake_owner.lock().unwrap().retain(|_, owner| owner != key);
+                self.ctx.emit();
+                return Err(error.into());
+            }
+        };
         if let Some((proxy, _)) = proxy {
             self.proxies.lock().unwrap().insert(key.to_string(), proxy);
         }
-        self.ctx.with_state(|i| i.sessions.insert(key.to_string()));
         self.ctx.logger.log(LogLevel::Info, LogCode::SessionStarted, format!("screen {key} opened for {device_id}"));
         self.ctx.emit();
 
@@ -134,7 +137,7 @@ impl SessionService {
         let key = key.to_string();
         let id = device_id.to_string();
         tokio::spawn(async move {
-            let result = running.wait().await;
+            let result = running.0.await;
             // The proxy goes with its screen.
             me.proxies.lock().unwrap().remove(&key);
             me.awake_owner.lock().unwrap().retain(|_, owner| *owner != key);
@@ -169,9 +172,10 @@ impl SessionService {
     pub(crate) async fn start_proxy(
         &self,
         install: &Installed,
-        spec: &LaunchSpec,
+        spec: &SessionSpec,
         device_id: &str,
     ) -> Option<(Proxy, Vec<String>)> {
+        if !self.ctx.scrcpy_host.supports_proxy() { return None; }
         let unavailable = |why: String| {
             self.ctx.logger.log(LogLevel::Warn, LogCode::ProxyUnavailable, format!("no proxy for {device_id}: {why}"));
             self.ctx.notice(NoticeLevel::Info, NoticeCode::ProxyUnavailable, why, Some(device_id.to_string()));
@@ -208,28 +212,20 @@ impl SessionService {
         }
     }
 
-    /// The arguments of the settings that scrcpy takes as arguments (how the
-    /// keyboard is sent, the bit rate of the video), in the form of the installed
-    /// version. A version that has not been checked is not guessed at: the
-    /// defaults of scrcpy are left, and the user is told.
-    fn option_args(
+    /// Warn when the official desktop client must keep defaults for unchecked options.
+    fn check_options(
         &self,
         device_id: &str,
         install: &Installed,
         keyboard: KeyboardMode,
         bit_rate: BitRateMbps,
         max_size: MaxSize,
-    ) -> Vec<String> {
+    ) {
         if keyboard == KeyboardMode::Sdk && bit_rate.mbps().is_none() && max_size.pixels().is_none() {
-            return Vec::new();
+            return;
         }
         match self.ctx.app_protocol() {
-            Ok((_, adapter)) => [
-                adapter.keyboard_args(keyboard),
-                adapter.video_bit_rate_args(bit_rate),
-                adapter.max_size_args(max_size),
-            ]
-            .concat(),
+            Ok(_) => {}
             Err(_) => {
                 let why = format!(
                     "the scrcpy version {} has not been checked for the keyboard mode {keyboard:?}, the bit rate {:?} and the size {:?}",
@@ -239,7 +235,6 @@ impl SessionService {
                 );
                 self.ctx.logger.log(LogLevel::Warn, LogCode::ProxyUnavailable, format!("{device_id}: {why}"));
                 self.ctx.notice(NoticeLevel::Info, NoticeCode::OptionsUnavailable, why, Some(device_id.to_string()));
-                Vec::new()
             }
         }
     }
@@ -262,8 +257,12 @@ impl SessionService {
     /// buttons.
     pub fn send_control(&self, device_id: &str, message: &ControlMessage) -> Result<(), CoreError> {
         let proxies = self.proxies.lock().unwrap();
-        let proxy = proxies.get(device_id).ok_or(CoreError::NoProxy)?;
-        proxy.send(message).map_err(|_| CoreError::ControlUnavailable)
+        if let Some(proxy) = proxies.get(device_id) {
+            return proxy.send(message).map_err(|_| CoreError::ControlUnavailable);
+        }
+        drop(proxies);
+        if !self.ctx.scrcpy_host.has_control(device_id) { return Err(CoreError::NoProxy); }
+        self.ctx.scrcpy_host.send_control(device_id, message).map_err(|_| CoreError::ControlUnavailable)
     }
 
     /// Says that the session `key` keeps the device awake, unless another
@@ -271,7 +270,7 @@ impl SessionService {
     /// found when it started: a second window that also changed them would find
     /// the changed ones and leave them so when it ends last, so only one window
     /// of a device keeps it awake.
-    pub(crate) fn claim_keep_awake(&self, device_id: &str, key: &str) -> bool {
+    fn claim_keep_awake(&self, device_id: &str, key: &str) -> bool {
         match self.awake_owner.lock().unwrap().entry(device_id.to_string()) {
             std::collections::hash_map::Entry::Occupied(_) => false,
             std::collections::hash_map::Entry::Vacant(v) => {
@@ -279,11 +278,6 @@ impl SessionService {
                 true
             }
         }
-    }
-
-    /// Gives the claim on keeping the device awake back (the session never started).
-    pub(crate) fn release_keep_awake(&self, device_id: &str) {
-        self.awake_owner.lock().unwrap().remove(device_id);
     }
 
     /// Carries out what a toolbar button does on a screen: the device's own (its
@@ -374,7 +368,8 @@ impl SessionService {
         let prefs = self.ctx.with_state(|i| i.settings.toolbar.buttons.clone());
         let registry = self.buttons.lock().unwrap();
         let available = registry.all();
-        let control = device_id.is_some_and(|id| self.proxies.lock().unwrap().get(id).is_some_and(Proxy::offers_control));
+        let control = device_id.is_some_and(|id| self.proxies.lock().unwrap().get(id).is_some_and(Proxy::offers_control)
+            || self.ctx.scrcpy_host.has_control(id));
         // The window of an app is reached through the control socket only.
         let window_of_app = device_id.is_some_and(|id| SessionKey::parse(id).app.is_some());
         let mut listed = buttons::toolbar_buttons(&available, &prefs, control, !window_of_app);

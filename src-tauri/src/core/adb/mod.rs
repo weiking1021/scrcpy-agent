@@ -10,7 +10,14 @@
 
 pub mod api;
 pub mod cli;
+#[cfg(not(target_os = "android"))]
 pub mod select;
+#[cfg(any(target_os = "android", test))]
+pub mod android;
+#[cfg(target_os = "android")]
+pub mod select {
+    pub use super::android::AndroidAdb as ConfiguredAdb;
+}
 pub mod wire;
 
 use anyhow::{Result, anyhow, bail};

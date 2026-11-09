@@ -1,6 +1,8 @@
 //! The Windows widget follows the application's language and data.
 //! Optional package registration lives with the other OS integrations.
-use crate::{Shared, core::error::CoreError};
+use crate::core::error::CoreError;
+#[cfg(not(target_os = "android"))]
+use crate::Shared;
 use std::{
     collections::BTreeMap,
     sync::{Arc, Mutex},
@@ -79,6 +81,7 @@ pub fn pipe_name(directory: &std::path::Path) -> String {
     )
 }
 
+#[cfg(not(target_os = "android"))]
 pub fn start<R: tauri::Runtime>(app: &AppHandle<R>, core: Shared) {
     let directory = core.store().windows_widget_dir();
     let saved: Texts = std::fs::read(directory.join("texts.json"))

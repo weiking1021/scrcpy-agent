@@ -47,6 +47,7 @@ fn exe(name: &str) -> String {
 pub enum Archive {
     Zip,
     TarGz,
+    ServerJar,
 }
 
 impl Archive {
@@ -54,6 +55,7 @@ impl Archive {
         match self {
             Archive::Zip => "zip",
             Archive::TarGz => "tar.gz",
+            Archive::ServerJar => "jar",
         }
     }
 }
@@ -69,12 +71,15 @@ fn platform_tag() -> Option<(&'static str, Archive)> {
         Some(("win32", Archive::Zip))
     } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
         Some(("linux-x86_64", Archive::TarGz))
+    } else if cfg!(target_os = "android") {
+        Some(("server", Archive::ServerJar))
     } else {
         None
     }
 }
 
 pub fn asset_name(platform: &str, archive: Archive, tag: &str) -> String {
+    if archive == Archive::ServerJar { return format!("scrcpy-server-{tag}"); }
     format!("scrcpy-{platform}-{tag}.{}", archive.extension())
 }
 
@@ -247,6 +252,7 @@ fn extract(file: &Path, dest: &Path, archive: Archive) -> anyhow::Result<()> {
             let gz = flate2::read::GzDecoder::new(fs::File::open(file)?);
             tar::Archive::new(gz).unpack(&tmp)?;
         }
+        Archive::ServerJar => { fs::copy(file, tmp.join("scrcpy-server"))?; }
     }
 
     let mut root = tmp.clone();
@@ -258,6 +264,13 @@ fn extract(file: &Path, dest: &Path, archive: Archive) -> anyhow::Result<()> {
     fs::rename(&root, dest)?;
     let _ = fs::remove_dir_all(&tmp);
     Ok(())
+}
+
+/// Publishes a trusted APK asset through the same atomic install layout as downloads.
+pub fn install_bundled_server(base: &Path, tag: &ReleaseTag, asset: &Path) -> anyhow::Result<Installed> {
+    let root = base.join(tag.as_str());
+    extract(asset, &root, Archive::ServerJar)?;
+    Ok(Installed { version: tag.as_str().into(), root })
 }
 
 #[cfg(test)]

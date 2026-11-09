@@ -261,6 +261,7 @@
   "nav.collapse": "Collapse",
   "files.hint": "Files sent to a device since this program started.",
   "files.empty": "Nothing was sent yet. Drop files on a device, or use the right-click menu of a file.",
+  "files.empty_mobile": "Nothing was sent yet. Share files from another app and choose a ScrcpyAgent action.",
   "card.details": "Details",
   "devices.group_paired": "Paired ({count})",
   "devices.group_strangers": "Other devices ({count})",

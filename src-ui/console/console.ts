@@ -10,6 +10,7 @@ import { describeError } from "../shared/errors";
 import { loadUserPacks, setAppName, setLanguage, t, translateDom } from "../shared/i18n";
 import { initRipple } from "../shared/ripple";
 import { initTheme } from "../shared/theme";
+import { initPlatform } from "../shared/platform";
 import { LOG_LEVELS, isLogLevel } from "../shared/types";
 import type { CoreEvent, LogLine, LogLevel, Snapshot } from "../shared/types";
 
@@ -86,6 +87,7 @@ function wireControls(): void {
 }
 
 async function main(): Promise<void> {
+  await initPlatform();
   initRipple();
   void initTheme();
   await loadUserPacks();
@@ -93,7 +95,7 @@ async function main(): Promise<void> {
   setLanguage(state.settings.language);
   setAppName(state.settings.app_name);
   translateDom();
-  await getCurrentWindow().setTitle(t("console.title"));
+  await getCurrentWindow().setTitle(t("console.title")).catch(() => {});
   wireControls();
 
   // Listen first, then ask for the log so far: the core hands over what it has

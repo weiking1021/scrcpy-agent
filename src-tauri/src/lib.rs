@@ -1,28 +1,38 @@
 pub mod core;
 
 mod commands;
+#[cfg(not(target_os = "android"))]
 mod launch;
 mod login_start;
 mod shell_menu;
+#[cfg(not(target_os = "android"))]
 mod toolbar_window;
+#[cfg(not(target_os = "android"))]
 mod tray;
+#[cfg(not(target_os = "android"))]
 mod windows;
+#[cfg(target_os = "android")]
+mod android;
+#[cfg(target_os = "android")]
+use android::{tray, windows};
 mod widget;
 
 pub use crate::commands::shortcuts::ShortcutPlaces;
 
-use crate::commands::settings::{ExplorerTexts, explorer_texts};
-use crate::core::integration::autostart::{StartMode, start_mode};
-use crate::core::model::Event;
-use crate::core::{Core, Sink};
+#[cfg(not(target_os = "android"))]
+use crate::{commands::settings::{ExplorerTexts, explorer_texts}, core::{Sink, model::Event, integration::autostart::{StartMode, start_mode}}};
+use crate::core::Core;
+#[cfg(not(target_os = "android"))]
 use std::path::PathBuf;
 use std::sync::Arc;
+#[cfg(not(target_os = "android"))]
 use tauri::{AppHandle, Emitter, Manager};
 
 pub(crate) type Shared = Arc<Core>;
 
 /// Portable builds keep their data next to the executable; a `portable.txt`
 /// marker file (shipped only in the portable zip) switches this on.
+#[cfg(not(target_os = "android"))]
 fn data_dir(app: &AppHandle) -> PathBuf {
     if let Some(dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(PathBuf::from))
         && dir.join("portable.txt").exists()
@@ -39,8 +49,9 @@ fn data_dir(app: &AppHandle) -> PathBuf {
 /// the very same command dispatch as the real window.
 pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
     use commands::{addons, apps, console, devices, files, requests, scrcpy, sessions, settings, shortcuts, themes};
+    #[cfg(not(target_os = "android"))]
+    let builder = builder.on_window_event(windows::on_window_event);
     builder
-        .on_window_event(windows::on_window_event)
         // The files of the themes (their stylesheets, and the pictures and fonts of a theme of the user).
         .register_uri_scheme_protocol("theme", |context, request| {
             themes::serve(context.app_handle(), request.uri().path())
@@ -92,6 +103,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         requests::resolve_choice,
         requests::cancel_choice,
         settings::save_settings,
+        settings::host_platform,
         settings::set_explorer_menu_texts,
         settings::explorer_menu_available,
         settings::windows11_menu_available,
@@ -118,6 +130,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
 
 /// Where the core's events go: to the UI, and to the parts of the shell that
 /// follow them (the tray's list of devices, the small window of a request).
+#[cfg(not(target_os = "android"))]
 fn event_sink(handle: AppHandle) -> Sink {
     // One worker owns request-window changes. Progress can arrive while the
     // first webview is being made; it must not start another show/close task.
@@ -141,7 +154,7 @@ fn event_sink(handle: AppHandle) -> Sink {
     })
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[cfg(not(target_os = "android"))]
 pub fn run() {
     // The first plugin: a second start must be told apart before anything else is made.
     let builder = tauri::Builder::default().plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -223,9 +236,13 @@ pub fn run() {
         });
 }
 
+#[cfg(target_os = "android")]
+#[tauri::mobile_entry_point]
+pub fn run() { android::run(); }
+
 /// On Linux a logout or a `kill` ends the program with a signal, which would skip the end of the program; the
 /// signals that ask it to end make it end as the tray's quit does. (Where there is no such signal, nothing is done.)
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 fn end_on_signals(handle: AppHandle) {
     use tokio::signal::unix::{SignalKind, signal};
     for kind in [SignalKind::terminate(), SignalKind::interrupt(), SignalKind::hangup()] {

@@ -2,6 +2,7 @@
 //! carry a device's screen.
 
 pub mod manager;
+pub mod host;
 pub mod mirror;
 pub mod protocol;
 pub mod proxy;

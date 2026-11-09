@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <application android:label="ScrcpyAgent" android:theme="@style/Theme.scrcpy_agent"
+        android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:supportsRtl="true"
+        android:usesCleartextTraffic="${usesCleartextTraffic}">
+        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity-alias android:name=".ShareSendChoose" android:targetActivity=".MainActivity"
+            android:exported="true" android:label="@string/share_send_choose">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".ShareSendDefault" android:targetActivity=".MainActivity"
+            android:exported="true" android:label="@string/share_send_default">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".ShareOpenChoose" android:targetActivity=".MainActivity"
+            android:exported="true" android:label="@string/share_open_choose">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".ShareOpenDefault" android:targetActivity=".MainActivity"
+            android:exported="true" android:label="@string/share_open_default">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity-alias>
+        <activity android:name=".MirrorActivity" android:exported="false" android:theme="@android:style/Theme.Material.NoActionBar"
+            android:resizeableActivity="true" android:taskAffinity="io.github.weiking1021.scrcpyagent.android.sessions"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+    </application>
+</manifest>

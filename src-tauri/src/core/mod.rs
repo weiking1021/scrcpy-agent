@@ -15,6 +15,7 @@
 //! * `themes()` — the looks the windows can be drawn in
 
 pub mod adb;
+pub mod bridge;
 pub mod addons;
 pub mod app_name;
 pub mod apps;
@@ -193,6 +194,9 @@ impl Core {
     /// Boot sequence and the loops that keep the state current. Runs for the
     /// whole lifetime of the application.
     pub async fn run(self: Arc<Self>) {
+        if let Err(error) = self.ctx.scrcpy_host.prepare(self.ctx.store.scrcpy_dir()).await {
+            self.ctx.logger.log(LogLevel::Error, LogCode::ScrcpyOutput, format!("could not prepare bundled scrcpy: {error:#}"));
+        }
         let installed = match self.ctx.options.preinstalled.clone() {
             Some(installed) => installed,
             None => self.obtain_scrcpy().await,
@@ -286,12 +290,15 @@ impl Core {
 
     /// What there is to download of a release (asks GitHub; downloads nothing).
     pub async fn scrcpy_offer(&self, tag: &ReleaseTag) -> Result<Offer, CoreError> {
+        if !self.ctx.scrcpy_host.supports_version(tag.as_str()) { return Err(CoreError::UnsupportedScrcpy); }
         scrcpy_manager::fetch_offer(tag).await.map_err(CoreError::ScrcpyRelease)
     }
 
     /// The newest releases of scrcpy (asks GitHub).
     pub async fn scrcpy_available(&self) -> Result<Vec<ReleaseTag>, CoreError> {
-        scrcpy_manager::fetch_list().await.map_err(CoreError::ScrcpyRelease)
+        let mut releases = scrcpy_manager::fetch_list().await.map_err(CoreError::ScrcpyRelease)?;
+        releases.retain(|tag| self.ctx.scrcpy_host.supports_version(tag.as_str()));
+        Ok(releases)
     }
 
     /// Whether the release in use cannot be changed now: it would stop the adb that the open screens use.
@@ -321,6 +328,7 @@ impl Core {
     /// again with the adb of that release (one that runs keeps serving whatever else is started), so it is not
     /// done while screens are open.
     pub async fn use_scrcpy(self: &Arc<Self>, tag: &ReleaseTag) -> Result<(), CoreError> {
+        if !self.ctx.scrcpy_host.supports_version(tag.as_str()) { return Err(CoreError::UnsupportedScrcpy); }
         let new = scrcpy_manager::find_version(&self.ctx.store.scrcpy_dir(), tag.as_str())
             .ok_or(CoreError::ScrcpyNotInstalled)?;
         let current = self.ctx.with_state(|i| i.installed.clone());
@@ -337,15 +345,16 @@ impl Core {
             Some(old) if old == new => self.refresh_wanted(),
             Some(old) => {
                 self.stop_devices();
-                if let Err(versions::SwitchError::ServerNotStarted(text)) =
-                    versions::switch_adb(&old, &new, &adb::SystemAdb).await
-                {
-                    // The release in use goes on.
-                    self.start_devices(old);
-                    return Err(CoreError::AdbNotStarted(text));
+                if self.ctx.scrcpy_host.manages_adb_server() {
+                    if let Err(versions::SwitchError::ServerNotStarted(text)) =
+                        versions::switch_adb(&old, &new, &adb::SystemAdb).await
+                    {
+                        // The release in use goes on.
+                        self.start_devices(old);
+                        return Err(CoreError::AdbNotStarted(text));
+                    }
+                    self.devices.mark_adb_started();
                 }
-                // The server was stopped and started again here: the one that runs is the program's own now.
-                self.devices.mark_adb_started();
                 self.ctx.with_state(|i| {
                     i.scrcpy = ScrcpyStatus::Ready { version: new.version.clone() };
                     i.installed = Some(new.clone());

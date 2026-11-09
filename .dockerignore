@@ -5,6 +5,17 @@ src-tauri/target
 src-tauri/target-tests
 src-tauri/windows-widget/bin
 src-tauri/windows-widget/obj
+android/.gradle
+android/**/build
+android/local.properties
+src-tauri/gen/android/.gradle
+src-tauri/gen/android/**/build
+src-tauri/gen/android/app/src/main/jniLibs
+src-tauri/gen/android/app/tauri.properties
+src-tauri/gen/android/app/tauri.build.gradle.kts
+src-tauri/gen/android/tauri.settings.gradle
+src-tauri/gen/android/local.properties
+src-tauri/gen/android/.tauri
 *.log
 src-tauri/gen/schemas
 out

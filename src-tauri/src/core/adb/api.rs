@@ -71,7 +71,7 @@ impl From<std::io::Error> for AdbError {
 }
 
 /// What a command run on a device produced.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Deserialize)]
 pub struct ShellOutput {
     pub stdout: Vec<u8>,
     pub stderr: Vec<u8>,

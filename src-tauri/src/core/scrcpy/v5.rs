@@ -32,6 +32,30 @@ pub struct V5;
 const KEEP_AWAKE_SECONDS: u32 = 3600;
 
 impl ScrcpyProtocol for V5 {
+    fn server_options(&self, spec: &super::host::SessionSpec) -> Result<Vec<String>, ProtocolError> {
+        let mut options = vec![
+            "tunnel_forward=true".into(), "audio=false".into(), "control=true".into(),
+            "clipboard_autosync=false".into(), "video_codec=h264".into(), "cleanup=true".into(),
+        ];
+        if let Some(rate) = spec.bit_rate.mbps() { options.push(format!("video_bit_rate={}", rate * 1_000_000)); }
+        if let Some(size) = spec.max_size.pixels() { options.push(format!("max_size={size}")); }
+        if let Some(app) = &spec.app {
+            if app.display == AppDisplay::VirtualDisplay {
+                let size = app.size.map(|s| format!("{}x{}", s.width, s.height)).unwrap_or_default();
+                options.push(format!("new_display={size}"));
+            }
+            if app.keep_awake {
+                options.push("stay_awake=true".into());
+                options.push(format!("screen_off_timeout={}", KEEP_AWAKE_SECONDS * 1000));
+            }
+        }
+        Ok(options)
+    }
+
+    fn app_list_server_options(&self) -> Result<Vec<String>, ProtocolError> {
+        Ok(vec!["list_apps=true".into(), "cleanup=true".into()])
+    }
+
     fn supported_versions(&self) -> &'static [ScrcpyVersion] {
         &CHECKED
     }
@@ -83,6 +107,13 @@ impl ScrcpyProtocol for V5 {
             ControlMessage::ExpandSettingsPanel => vec![TYPE_EXPAND_SETTINGS_PANEL],
             ControlMessage::CollapsePanels => vec![TYPE_COLLAPSE_PANELS],
             ControlMessage::RotateDevice => vec![TYPE_ROTATE_DEVICE],
+            ControlMessage::ResetVideo => vec![TYPE_RESET_VIDEO],
+            ControlMessage::StartApp { package } => {
+                let bytes = package.as_str().as_bytes();
+                let mut packet = vec![TYPE_START_APP, bytes.len() as u8];
+                packet.extend_from_slice(bytes);
+                packet
+            }
         })
     }
 

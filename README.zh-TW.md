@@ -60,6 +60,9 @@ Addon 只能使用安裝時勾選的權限。`run_process`（執行電腦上的�
 
 ## 從原始碼建置
 
+Android 畫面檢視 PoC 位於 [android/](android/README.md)，可直接配對另一台 Android 11 以上裝置並顯示畫面。
+打包流程會一併產出**未簽章 APK**；安裝前必須自行替副本簽章。
+
 需求：[Rust](https://rustup.rs/)（stable）、Node.js，以及
 [Tauri 2 需要的系統函式庫](https://tauri.app/start/prerequisites/)（Windows 為 MSVC 建置工具與 WebView2；
 Linux 為 `libwebkit2gtk-4.1-dev`、`libayatana-appindicator3-dev` 等）。
@@ -71,8 +74,8 @@ Windows 原始碼建置另需 .NET 8 SDK（或能建置 .NET 8 的較新 SDK）�
 npm install
 npm run tauri dev        # 執行，檔案變動時自動重編
 npm run tauri build      # 產生此系統的程式與安裝程式
-npm run package          # Docker：Linux 與 Windows 的安裝包及 Addon 型別，輸出到 out/
-npm run package -- --sequential  # 本機記憶體較少時，依序建置 Linux 與 Windows
+npm run package          # Docker：Linux、Windows、未簽章 Android APK 與 Addon 型別，輸出到 out/
+npm run package -- --sequential  # 本機記憶體較少時，依序建置三個目標
 ```
 
 測試使用假的 adb 與假的 scrcpy（`src-tauri/examples/`），不需要實體裝置：

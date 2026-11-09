@@ -30,6 +30,7 @@ struct PendingChoice {
     action: ShellAction,
     files: Vec<PathBuf>,
     no_default: bool,
+    resource: Option<Box<dyn Send + Sync>>,
 }
 
 pub struct RequestService {
@@ -56,6 +57,19 @@ impl RequestService {
     /// Carries out a request of the file manager's menu: on the default device if the
     /// action says so and there is one that is ready, else the user is asked.
     pub async fn handle_shell(self: &Arc<Self>, action: ShellAction, files: Vec<PathBuf>) -> ShellStart {
+        self.handle_owned(action, files, None).await
+    }
+
+    /// Keep imported sources alive until their request is cancelled or its work ends,
+    /// including when its progress window is closed before the transfer finishes.
+    pub async fn handle_shell_with_resource<R: Send + Sync + 'static>(
+        self: &Arc<Self>, action: ShellAction, files: Vec<PathBuf>, resource: R,
+    ) -> ShellStart {
+        self.handle_owned(action, files, Some(Box::new(resource))).await
+    }
+
+    async fn handle_owned(self: &Arc<Self>, action: ShellAction, files: Vec<PathBuf>,
+        resource: Option<Box<dyn Send + Sync>>) -> ShellStart {
         let id = self.next_request.fetch_add(1, Ordering::Relaxed);
         if action.uses_default() {
             let default = self.ctx.settings().default_device;
@@ -63,12 +77,12 @@ impl RequestService {
                 let mut view = RequestView::new(id, action, &files, false, self.close_after());
                 view.choose(&device);
                 self.show(Some(view));
-                self.run_shell(id, action, device, files);
+                self.run_shell(id, action, device, files, resource);
                 return ShellStart::Running;
             }
-            self.set_choice(id, action, files, true);
+            self.set_choice(id, action, files, true, resource);
         } else {
-            self.set_choice(id, action, files, false);
+            self.set_choice(id, action, files, false, resource);
         }
         ShellStart::NeedsChoice
     }
@@ -104,21 +118,24 @@ impl RequestService {
 
     /// Makes a request wait for the user to choose a device (a newer one takes the
     /// place of one that waited).
-    fn set_choice(&self, id: u64, action: ShellAction, files: Vec<PathBuf>, no_default: bool) {
+    fn set_choice(&self, id: u64, action: ShellAction, files: Vec<PathBuf>, no_default: bool,
+        resource: Option<Box<dyn Send + Sync>>) {
         self.ctx.logger.log(
             LogLevel::Info,
             LogCode::Transfer,
             format!("{} file(s) wait for a device to be chosen ({})", files.len(), action.word()),
         );
         self.show(Some(RequestView::new(id, action, &files, no_default, self.close_after())));
-        *self.choice.lock().unwrap() = Some(PendingChoice { id, action, files, no_default });
+        *self.choice.lock().unwrap() = Some(PendingChoice { id, action, files, no_default, resource });
     }
 
     /// Does what the action says with the files, on the device, without waiting
     /// for it to end. How each file goes is put into the view of request `id`.
-    fn run_shell(self: &Arc<Self>, id: u64, action: ShellAction, device: String, files: Vec<PathBuf>) {
+    fn run_shell(self: &Arc<Self>, id: u64, action: ShellAction, device: String, files: Vec<PathBuf>,
+        resource: Option<Box<dyn Send + Sync>>) {
         let me = self.clone();
         tokio::spawn(async move {
+            let _resource = resource;
             let failed = |error: CoreError| ItemState::Failed { error };
             if action.opens() {
                 for (index, file) in files.iter().enumerate() {
@@ -189,7 +206,7 @@ impl RequestService {
         self.ctx.online_device(device_id)?;
         let pending = self.choice.lock().unwrap().take().ok_or(CoreError::NotAvailable)?;
         self.update(pending.id, |v| v.choose(device_id));
-        self.run_shell(pending.id, pending.action, device_id.to_string(), pending.files);
+        self.run_shell(pending.id, pending.action, device_id.to_string(), pending.files, pending.resource);
         Ok(())
     }
 
