@@ -65,6 +65,8 @@ pub enum CoreError {
     /// is the system's, for showing only).
     #[error("the Explorer menu could not be changed: {0}")]
     ExplorerMenu(String),
+    #[error("the Windows widget could not be changed: {0}")]
+    WindowsWidget(String),
     /// The entry that starts the program at the login could not be written or removed (the
     /// text is the system's, for showing only).
     #[error("the start at the login could not be changed: {0}")]

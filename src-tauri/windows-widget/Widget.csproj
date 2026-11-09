@@ -1,0 +1,42 @@
+<Project>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <WindowsSdkPackageVersion>10.0.19041.38</WindowsSdkPackageVersion>
+    <RuntimeIdentifiers>win-x64;win-arm64;win-x86</RuntimeIdentifiers>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- No XAML or PRI resources: the card and loose manifest supply the UI. -->
+    <EnablePriGenTooling>false</EnablePriGenTooling>
+    <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
+    <WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
+    <AssemblyName>ScrcpyAgent.Widget</AssemblyName>
+    <RootNamespace>ScrcpyAgent.Widget</RootNamespace>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Update="Microsoft.NETCore.App" RuntimeFrameworkVersion="8.0.33" />
+    <EmbeddedResource Include="icons/*.png" />
+    <Content Include="Assets/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Widgets" Version="2.6.5" />
+  </ItemGroup>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <!-- The SDK's default target merges manifests with Windows-only mt.exe.
+       This provider has no user manifest: generate the complete SDK manifest
+       directly, using the SDK's own task on both Windows and Linux. -->
+  <Target Name="CreateWinRTRegistration" BeforeTargets="AssignTargetPaths;CoreCompile"
+          DependsOnTargets="GetNewAppManifestValues;AddMicrosoftWindowsAppSDKPayloadFilesFromComponents"
+          Inputs="$(MSBuildAllProjects);@(MicrosoftWindowsAppSDKAppxFragmentFiles)" Outputs="$(ApplicationManifest)">
+    <Error Condition="'$(UserApplicationManifest)' != ''" Text="The widget provider does not merge custom executable manifests." />
+    <MakeDir Directories="$(SelfContainedIntermediateOutputPath)Manifests/" />
+    <GenerateAppManifestFromAppxFragments RedirectDlls="false"
+        FrameworkDlls="@(MicrosoftWindowsAppSDKDllFiles)"
+        AppxFragments="@(MicrosoftWindowsAppSDKAppxFragmentFiles)"
+        OutAppManifest="$(ApplicationManifest)" />
+  </Target>
+</Project>

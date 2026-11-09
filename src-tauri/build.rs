@@ -1,11 +1,14 @@
 #[path = "windows-menu/build.rs"]
 mod windows_menu;
+#[path = "windows-widget/build.rs"]
+mod windows_widget;
 
 fn main() {
     tauri_build::build();
 
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         windows_menu::build();
+        windows_widget::build();
     }
 
     // Test executables that link the Tauri windowing code need the Common

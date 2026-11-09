@@ -3,6 +3,9 @@ node_modules
 dist
 src-tauri/target
 src-tauri/target-tests
+src-tauri/windows-widget/bin
+src-tauri/windows-widget/obj
+*.log
 src-tauri/gen/schemas
 out
 out.tmp-*

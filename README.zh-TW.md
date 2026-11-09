@@ -16,6 +16,10 @@
 - **檔案。** 傳送檔案到裝置、在裝置上開啟檔案；可從程式內操作，也可從檔案管理員的右鍵選單操作
   （Windows 檔案總管；Linux 的 Dolphin、Nemo、Nautilus）。
 - **系統匣。** 關閉主視窗時會隱藏到系統匣，程式繼續執行（設定 `close_to_tray` 可關閉此行為）。程式也可以隨登入啟動。
+- **Windows 11 小工具。** 可在設定中啟用，在 **Win + W → ＋** 加入，查看已連線裝置與電量；展開裝置可開啟投影或詳情。
+  停用時僅取消小工具註冊。註冊可能要求管理員授權，暫時開啟 Developer Mode，完成後還原原值，不做簽署。
+  支援中型／大型、Windows 深淺色與程式的語言包。即時資訊需要主程式執行，電量更新頻率跟隨原有的裝置資訊設定。
+  卡片的視覺主題由 Windows 控制，與程式的 CSS 主題分開。
 - **外觀。** 主題（CSS）與語言包，內建英文與繁體中文。
 - **Addon。** 含 `addon.json` 與 `main.js` 的資料夾，在沙盒化的 JavaScript 引擎（QuickJS）中執行，只擁有安裝時授予的
   權限。Addon 可以加入選單項目與工具列按鈕、回應事件、宣告設定（由程式畫出表單）、在裝置上執行 shell 指令、在電腦上
@@ -59,6 +63,9 @@ Addon 只能使用安裝時勾選的權限。`run_process`（執行電腦上的�
 需求：[Rust](https://rustup.rs/)（stable）、Node.js，以及
 [Tauri 2 需要的系統函式庫](https://tauri.app/start/prerequisites/)（Windows 為 MSVC 建置工具與 WebView2；
 Linux 為 `libwebkit2gtk-4.1-dev`、`libayatana-appindicator3-dev` 等）。
+
+Windows 原始碼建置另需 .NET 8 SDK（或能建置 .NET 8 的較新 SDK），供獨立的小工具 Provider 使用。
+安裝版與免安裝版都內嵌其自足部署檔案，使用者不必另外安裝 .NET 或 Widgets SDK；Docker 會自行提供建置環境。
 
 ```
 npm install

@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory = $true)][ValidateSet('Enable', 'Disable')][string]$Action,
     [Parameter(Mandatory = $true)][string]$ManifestPath,
     [Parameter(Mandatory = $true)][string]$ExternalLocation,
+    [ValidateSet('ScrcpyAgent.ExplorerMenu', 'ScrcpyAgent.Widget')][string]$PackageName = 'ScrcpyAgent.ExplorerMenu',
     [switch]$ElevatedRegistration,
     [string]$OriginalUserSid,
     [string]$ErrorFile
@@ -19,14 +20,19 @@ function Get-ManifestHash([string]$Path) {
     finally { $hash.Dispose() }
 }
 
-function Register-Menu {
+function Register-Package {
     # Only this identity-only package is removed; application data uses a
     # different identity and is never passed to Remove-AppxPackage.
     $existing = Get-AppxPackage -Name $name
-    if ($existing) { $existing | Remove-AppxPackage }
-    Add-AppxPackage -Path $ManifestPath -Register -ExternalLocation $ExternalLocation
+    if ($name -eq 'ScrcpyAgent.Widget') {
+        # Update in place so pinned widgets and their custom state survive.
+        Add-AppxPackage -Path $ManifestPath -Register -ExternalLocation $ExternalLocation -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+    } else {
+        if ($existing) { $existing | Remove-AppxPackage }
+        Add-AppxPackage -Path $ManifestPath -Register -ExternalLocation $ExternalLocation
+    }
     $registered = Get-AppxPackage -Name $name
-    if (!$registered) { throw 'The Windows 11 menu package was not registered.' }
+    if (!$registered) { throw 'The Windows integration package was not registered.' }
     @{ identity = $registered.PackageFullName; content = $wanted } |
         ConvertTo-Json | Set-Content -LiteralPath $marker -Encoding UTF8
 }
@@ -61,7 +67,7 @@ function Register-WithTemporaryDeveloperMode {
         if (!$key) { $key = $base.CreateSubKey($path) }
         $changed = $true
         $key.SetValue($valueName, 1, [Microsoft.Win32.RegistryValueKind]::DWord)
-        Register-Menu
+        Register-Package
     } finally {
         try {
             if ($changed) {
@@ -89,7 +95,7 @@ function Request-Registration {
     # Start-Process, which joins ArgumentList into one Windows command line.
     $arguments = @('-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
         '-File', $PSCommandPath, '-Action', 'Enable', '-ManifestPath', $ManifestPath,
-        '-ExternalLocation', $ExternalLocation.TrimEnd('\'), '-ElevatedRegistration',
+        '-ExternalLocation', $ExternalLocation.TrimEnd('\'), '-PackageName', $PackageName, '-ElevatedRegistration',
         '-OriginalUserSid', $sid, '-ErrorFile', $errorPath) |
         ForEach-Object { '"' + $_ + '"' }
     try {
@@ -97,16 +103,24 @@ function Request-Registration {
             -Verb RunAs -WindowStyle Hidden -Wait -PassThru
         if ($process.ExitCode -ne 0) {
             if ([IO.File]::Exists($errorPath)) { throw [IO.File]::ReadAllText($errorPath) }
-            throw 'Windows 11 menu registration was cancelled or failed.'
+            throw 'Windows integration registration was cancelled or failed.'
         }
     } finally {
         if ([IO.File]::Exists($errorPath)) { [IO.File]::Delete($errorPath) }
     }
 }
-$name = 'ScrcpyAgent.ExplorerMenu'
+$name = $PackageName
 $installed = Get-AppxPackage -Name $name
 if ($Action -eq 'Disable') {
-    if ($installed) { $installed | Remove-AppxPackage }
+    if ($installed) {
+        if ($name -eq 'ScrcpyAgent.Widget' -and $installed.InstallLocation) {
+            $provider = Join-Path $installed.InstallLocation 'ScrcpyAgent.Widget.exe'
+            if (Test-Path -LiteralPath $provider) {
+                Start-Process -FilePath $provider -ArgumentList '--shutdown' -WindowStyle Hidden -Wait
+            }
+        }
+        $installed | Remove-AppxPackage
+    }
     exit 0
 }
 $marker = Join-Path (Split-Path -Parent $ManifestPath) 'registration.json'
@@ -131,7 +145,7 @@ try {
     } else {
         $mode = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' `
             -Name AllowDevelopmentWithoutDevLicense -ErrorAction SilentlyContinue
-        if ($mode -and $mode.AllowDevelopmentWithoutDevLicense -eq 1) { Register-Menu }
+        if ($mode -and $mode.AllowDevelopmentWithoutDevLicense -eq 1) { Register-Package }
         else { Request-Registration }
     }
 } catch {

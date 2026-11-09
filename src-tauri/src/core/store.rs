@@ -99,6 +99,11 @@ impl Store {
         self.root().join("windows11-menu")
     }
 
+    /// Deployment resources of the optional Windows widget provider.
+    pub fn windows_widget_dir(&self) -> PathBuf {
+        self.root().join("windows-widget")
+    }
+
     /// The folder itself (for showing it to the user).
     pub fn root(&self) -> &Path {
         &self.root

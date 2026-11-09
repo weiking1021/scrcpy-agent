@@ -18,6 +18,12 @@ devices on the local network, reconnects paired devices, and opens their screens
   manager (Windows Explorer; Dolphin, Nemo and Nautilus on Linux).
 - **Tray.** Closing the main window hides it to the system tray and the program keeps running (the setting
   `close_to_tray` turns this off). The program can also start at login.
+- **Windows 11 widget.** An optional widget shows connected devices and battery levels. Expand a device to open
+  its screen or details. Enable it in Settings, then add it from **Win + W → +**. Turning it off unregisters only
+  the widget. Registration may request administrator permission and temporarily enable Developer Mode; the previous
+  value is restored afterwards. No signing is performed. Medium and large sizes, light/dark Windows themes and the
+  application's language packs are supported. The app must be running for live device information; battery updates
+  follow the existing device refresh setting. Windows controls the card's visual theme, independently of app CSS themes.
 - **Appearance.** Themes (CSS) and language packs. English and Traditional Chinese are built in.
 - **Add-ons.** A folder with `addon.json` and `main.js`, run in a sandboxed JavaScript engine (QuickJS) with the
   permissions granted at install. An add-on can add menu entries and toolbar buttons, react to events, declare settings
@@ -65,6 +71,9 @@ An add-on can only use the permissions ticked at install. `run_process` (program
 Requirements: [Rust](https://rustup.rs/) (stable), Node.js, and the
 [system libraries Tauri 2 needs](https://tauri.app/start/prerequisites/) (on Windows the MSVC build tools and WebView2;
 on Linux `libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, …).
+Windows builds also need the .NET 8 SDK (or a later SDK that can target .NET 8) for the isolated widget provider.
+The installer and portable executable embed its self-contained payload; end users need no separate .NET or Widgets SDK
+installation. Docker supplies the build SDK automatically, only for the Windows target.
 
 ```
 npm install

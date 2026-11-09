@@ -7,6 +7,7 @@ mod shell_menu;
 mod toolbar_window;
 mod tray;
 mod windows;
+mod widget;
 
 pub use crate::commands::shortcuts::ShortcutPlaces;
 
@@ -94,6 +95,8 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         settings::set_explorer_menu_texts,
         settings::explorer_menu_available,
         settings::windows11_menu_available,
+        settings::windows_widget_available,
+        settings::set_windows_widget_texts,
         settings::launch_at_login_available,
         settings::detected_file_managers,
         settings::list_user_locales,
@@ -156,6 +159,7 @@ pub fn run() {
             let handle = app.handle().clone();
             let core = Core::new(data_dir(&handle), event_sink(handle));
             app.manage(core.clone());
+            widget::start(app.handle(), core.clone());
             app.manage(ExplorerTexts(std::sync::Mutex::new(Default::default())));
             app.manage(launch::ShellInbox::default());
             tray::setup(app)?;
@@ -166,6 +170,16 @@ pub fn run() {
             tauri::async_runtime::spawn_blocking(move || addons_core.addons().start_installed());
             // The menu of the Explorer follows the setting, and the path of this program.
             let settings = core.snapshot().settings;
+            if settings.windows11_widget {
+                let directory = core.store().windows_widget_dir();
+                let texts = widget::texts(app.handle());
+                let pipe = widget::pipe_name(&directory);
+                tauri::async_runtime::spawn_blocking(move || {
+                    if let Err(error) = widget::apply(true, &directory, &texts, &pipe) {
+                        eprintln!("the Windows widget could not be brought up to date: {error}");
+                    }
+                });
+            }
             if settings.windows11_explorer_menu {
                 let directory = core.store().windows11_menu_dir();
                 let texts = explorer_texts(app.handle());

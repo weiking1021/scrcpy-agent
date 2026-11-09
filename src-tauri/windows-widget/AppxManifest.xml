@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 uap10 com rescap">
+  <Identity Name="ScrcpyAgent.Widget" Publisher="CN=scrcpy-agent" Version="@VERSION@" ProcessorArchitecture="@ARCH@" />
+  <Properties>
+    <DisplayName>@APP_NAME@</DisplayName>
+    <PublisherDisplayName>scrcpy-agent</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
+  </Properties>
+  <Resources><Resource Language="zh-TW" /><Resource Language="en-US" /></Resources>
+  <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22000.0" MaxVersionTested="10.0.26100.0" /></Dependencies>
+  <Capabilities><rescap:Capability Name="runFullTrust" /><rescap:Capability Name="unvirtualizedResources" /></Capabilities>
+  <Applications>
+    <Application Id="Widget" Executable="ScrcpyAgent.Widget.exe" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
+      <uap:VisualElements AppListEntry="none" DisplayName="@APP_NAME@" Description="@DESCRIPTION@" BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer><com:ExeServer Executable="ScrcpyAgent.Widget.exe" DisplayName="ScrcpyAgent Widget">
+            <com:Class Id="69BD431E-60CB-493D-A6F6-736B8B37356B" DisplayName="ScrcpyAgent Widget" />
+          </com:ExeServer></com:ComServer>
+        </com:Extension>
+        <uap3:Extension Category="windows.appExtension">
+          <uap3:AppExtension Name="com.microsoft.windows.widgets" DisplayName="@APP_NAME@" Id="ScrcpyAgentWidget" PublicFolder="Public">
+            <uap3:Properties><WidgetProvider>
+              <ProviderIcons><Icon Path="Assets\StoreLogo.png" /></ProviderIcons>
+              <Activation><CreateInstance ClassId="69BD431E-60CB-493D-A6F6-736B8B37356B" /></Activation>
+              <Definitions><Definition Id="ConnectedDevices" DisplayName="@NAME@" Description="@DESCRIPTION@" AllowMultiple="false">
+                <Capabilities><Capability><Size Name="medium" /></Capability><Capability><Size Name="large" /></Capability></Capabilities>
+                <ThemeResources>
+                  <Icons><Icon Path="Assets\StoreLogo.png" /></Icons>
+                  <Screenshots><Screenshot Path="Assets\Preview.dark.@PREVIEW_LANGUAGE@.png" DisplayAltText="@DESCRIPTION@" /></Screenshots>
+                  <DarkMode><Screenshots><Screenshot Path="Assets\Preview.dark.@PREVIEW_LANGUAGE@.png" DisplayAltText="@DESCRIPTION@" /></Screenshots></DarkMode>
+                  <LightMode><Screenshots><Screenshot Path="Assets\Preview.light.@PREVIEW_LANGUAGE@.png" DisplayAltText="@DESCRIPTION@" /></Screenshots></LightMode>
+                </ThemeResources>
+              </Definition></Definitions>
+            </WidgetProvider></uap3:Properties>
+          </uap3:AppExtension>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+</Package>

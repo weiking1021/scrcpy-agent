@@ -29,6 +29,29 @@ const SHELL_QUIET: Duration = Duration::from_millis(600);
 /// Carries out what the arguments of a start ask for. Whether they asked for
 /// anything is the answer: with none, the caller decides what a start means.
 pub fn handle_arguments<R: tauri::Runtime>(app: &AppHandle<R>, args: &[String]) -> bool {
+    #[cfg(windows)]
+    if let [_program, flag, action, device] = args
+        && flag == "--widget" && (action == "device" || action == "mirror")
+    {
+        let mirror = action == "mirror";
+        let app = app.clone();
+        let device = device.clone();
+        tauri::async_runtime::spawn(async move {
+            let Some(core) = app.try_state::<Shared>() else { return };
+            if !core.snapshot().settings.windows11_widget { return; }
+            core.devices().wait_until_devices_known(Duration::from_secs(20)).await;
+            let result = if mirror {
+                crate::commands::sessions::open_screen(app.clone(), core.inner().clone(), &device).await
+            } else {
+                open_device_window(&app, &core, &device)
+            };
+            if let Err(error) = result {
+                core.notice(NoticeLevel::Error, NoticeCode::SessionFailed, error.to_string(), Some(device.clone()));
+                let _ = open_device_window(&app, &core, &device);
+            }
+        });
+        return true;
+    }
     if let Some(request) = shell_request::parse_app_args(args) {
         launch_app_shortcut(app, request);
         return true;

@@ -8,3 +8,7 @@ pub mod file_manager_menu;
 pub mod shortcuts;
 #[cfg(windows)]
 pub mod windows11_menu;
+#[cfg(windows)]
+pub mod windows_package;
+#[cfg(windows)]
+pub mod windows_widget;

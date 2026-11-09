@@ -23,6 +23,16 @@ function sendTrayLabels(): void {
     state_disconnected: t("state.disconnected"),
   };
   invoke("set_tray_texts", { texts }).catch(() => {});
+  invoke("set_windows_widget_texts", {
+    texts: {
+      app_name: t("app.title"),
+      ...Object.fromEntries([
+        "name", "description", "overview", "service_running", "service_stopped", "online",
+        "charging", "battery_unknown", "battery", "mirror", "details", "wait_title",
+        "start_title", "wait_hint", "start_hint", "more", "open", "preview_language",
+      ].map((key) => [key, t(`widget.${key}`)])),
+    },
+  }).catch(() => {});
   // The entries of the Explorer menu are in the same language (written again if the menu is on).
   invoke("set_explorer_menu_texts", {
     texts: {

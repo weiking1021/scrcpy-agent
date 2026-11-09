@@ -27,6 +27,7 @@ pub async fn save_settings<R: tauri::Runtime>(
     let (wanted, disabled) = (settings.explorer_menu, settings.disabled_file_managers.clone());
     let login = settings.launch_at_login;
     let modern = settings.windows11_explorer_menu;
+    let widget = settings.windows11_widget;
     core.save_settings(settings)?;
     // The start at the login is written or removed as the setting changes, at once.
     if login != before.launch_at_login
@@ -61,6 +62,48 @@ pub async fn save_settings<R: tauri::Runtime>(
             let _ = core.save_settings(kept);
             return Err(error);
         }
+    }
+    if widget != before.windows11_widget {
+        let directory = core.store().windows_widget_dir();
+        let texts = crate::widget::texts(&app);
+        let pipe = crate::widget::pipe_name(&directory);
+        let result = tauri::async_runtime::spawn_blocking(move || crate::widget::apply(widget, &directory, &texts, &pipe))
+            .await.map_err(|e| CoreError::WindowsWidget(e.to_string())).and_then(|result| result);
+        if let Err(error) = result {
+            let mut kept = core.snapshot().settings;
+            kept.windows11_widget = before.windows11_widget;
+            let _ = core.save_settings(kept);
+            return Err(error);
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn windows_widget_available() -> bool { crate::widget::available() }
+
+/// The widget uses the same resolved language pack (including user packs) as the UI.
+#[tauri::command]
+pub async fn set_windows_widget_texts<R: tauri::Runtime>(
+    app: AppHandle<R>, core: State<'_, Shared>, texts: crate::widget::Texts,
+) -> Result<(), CoreError> {
+    if !crate::widget::available() { return Ok(()); }
+    let mut resolved = crate::widget::defaults();
+    resolved.extend(texts);
+    {
+        let state = app.state::<crate::widget::WidgetTexts>();
+        let mut current = state.0.lock().unwrap();
+        if *current == resolved { return Ok(()); }
+        *current = resolved.clone();
+    }
+    let directory = core.store().windows_widget_dir();
+    std::fs::create_dir_all(&directory).map_err(|e| CoreError::WindowsWidget(e.to_string()))?;
+    std::fs::write(directory.join("texts.json"), serde_json::to_vec(&resolved).map_err(|e| CoreError::WindowsWidget(e.to_string()))?)
+        .map_err(|e| CoreError::WindowsWidget(e.to_string()))?;
+    if core.snapshot().settings.windows11_widget {
+        let pipe = crate::widget::pipe_name(&directory);
+        tauri::async_runtime::spawn_blocking(move || crate::widget::apply(true, &directory, &resolved, &pipe))
+            .await.map_err(|e| CoreError::WindowsWidget(e.to_string()))??;
     }
     Ok(())
 }

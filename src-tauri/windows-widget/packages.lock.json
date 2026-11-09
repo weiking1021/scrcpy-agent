@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0-windows10.0.19041": {
+      "Microsoft.WindowsAppSDK.Widgets": {
+        "type": "Direct",
+        "requested": "[2.6.5, )",
+        "resolved": "2.6.5",
+        "contentHash": "MyYNRuAn3GWE5/Aae5Fr9Pk9jD4HMcP7Z8ae3kca9fYp0D3HR236YflInfuxwZxXsY54llFMgH/ITuPL3MvdhA==",
+        "dependencies": {
+          "Microsoft.WindowsAppSDK.Base": "2.6.5"
+        }
+      },
+      "Microsoft.Windows.SDK.BuildTools": {
+        "type": "Transitive",
+        "resolved": "10.0.26100.4654",
+        "contentHash": "2mgcOlj/t2RfSyyw+pVESfO+Tk1RkfQzto9Vrq42M1lUQIfQEwbi8QLha9GXWIOj+TFzeHIEJckIoF25mgiM8A=="
+      },
+      "Microsoft.Windows.SDK.BuildTools.MSIX": {
+        "type": "Transitive",
+        "resolved": "1.7.251221100",
+        "contentHash": "f4aIZJ0NUth2403oxrpR+9rxVzZVI6dabqB21u8ncnk8eJAKCs9m77E4iYAnvP1YwrRe4axz3f8+yUcttNSfEA=="
+      },
+      "Microsoft.WindowsAppSDK.Base": {
+        "type": "Transitive",
+        "resolved": "2.6.5",
+        "contentHash": "/R+z6xrl4mIu6FmXNkdvMlL/Enl7pXgO5Q75LBJdls6uvieh3VTOn6jtvwtlywFnZMKfvsDP0Ckal6/phireJQ==",
+        "dependencies": {
+          "Microsoft.Windows.SDK.BuildTools": "10.0.26100.4654",
+          "Microsoft.Windows.SDK.BuildTools.MSIX": "1.7.251221100"
+        }
+      }
+    },
+    "net8.0-windows10.0.19041/win-arm64": {},
+    "net8.0-windows10.0.19041/win-x64": {},
+    "net8.0-windows10.0.19041/win-x86": {}
+  }
+}

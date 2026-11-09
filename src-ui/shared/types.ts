@@ -157,6 +157,8 @@ export interface Settings {
   explorer_menu: boolean;
   /** The Windows 11 file menu, independent of the legacy menu. */
   windows11_explorer_menu: boolean;
+  /** Registers the Windows 11 connected-devices widget. */
+  windows11_widget: boolean;
   /** The file managers of Linux the menu is not written for, though they are there. */
   disabled_file_managers: FileManager[];
   scrcpy_extra_args: string[];
@@ -255,6 +257,7 @@ export type CoreError =
   | { code: "bad_file_name" }
   | { code: "no_app" }
   | { code: "explorer_menu"; detail: string }
+  | { code: "windows_widget"; detail: string }
   | { code: "autostart"; detail: string }
   | { code: "addon"; detail: InstallErrorDetail }
   | { code: "unknown_setting" }
@@ -292,6 +295,7 @@ export const CORE_ERROR_CODES = [
   "bad_file_name",
   "no_app",
   "explorer_menu",
+  "windows_widget",
   "autostart",
   "addon",
   "unknown_setting",

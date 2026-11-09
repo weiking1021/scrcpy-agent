@@ -4,7 +4,7 @@
 
 use super::explorer_menu::MenuTexts;
 use crate::core::error::CoreError;
-use std::{path::Path, process::Command, sync::Mutex};
+use std::{path::Path, sync::Mutex};
 use winreg::{
     RegKey,
     enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ},
@@ -13,7 +13,6 @@ use winreg::{
 const CONFIG: &str = r"Software\scrcpy-agent\Windows11Menu";
 const DLL: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/scrcpy-agent-shell.dll"));
 const MANIFEST: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/AppxManifest.xml"));
-const REGISTER: &str = include_str!("../../../windows-menu/register.ps1");
 // Startup, a setting change and a language change must not deploy concurrently.
 static DEPLOYMENT: Mutex<()> = Mutex::new(());
 
@@ -70,7 +69,6 @@ pub fn apply(enabled: bool, directory: &Path, texts: &MenuTexts) -> Result<(), C
             ("Square44x44Logo.png", include_bytes!("../../../icons/Square44x44Logo.png").as_slice()),
         ] { resource(&directory.join("Assets").join(name), bytes)?; }
     }
-    resource(&directory.join("register.ps1"), REGISTER.as_bytes())?;
 
     // Closing or hiding a menu is immediate even while Windows unregisters its
     // identity. User data and the older Explorer menu have separate locations.
@@ -80,34 +78,12 @@ pub fn apply(enabled: bool, directory: &Path, texts: &MenuTexts) -> Result<(), C
             _ => {}
         }
     }
-    let system = std::env::var_os("SystemRoot").ok_or_else(|| fail("SystemRoot is not set"))?;
-    let powershell = Path::new(&system).join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
-    let mut command = Command::new(powershell);
-    command
-        .args([
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-        ])
-        .arg(directory.join("register.ps1"))
-        .arg("-Action")
-        .arg(if enabled { "Enable" } else { "Disable" })
-        .arg("-ManifestPath")
-        .arg(directory.join("AppxManifest.xml"))
-        .arg("-ExternalLocation")
-        .arg(external);
-    use std::os::windows::process::CommandExt;
-    command.creation_flags(0x08000000); // CREATE_NO_WINDOW
-    let output = command.output().map_err(fail)?;
-    if !output.status.success() {
+    if let Err(error) = super::windows_package::apply(enabled, directory, external, "ScrcpyAgent.ExplorerMenu") {
         // Restore visibility when disabling failed, since the setting is rolled back.
         if !enabled {
             write_config(&exe, texts)?;
         }
-        return Err(fail(String::from_utf8_lossy(&output.stderr).trim()));
+        return Err(fail(error));
     }
     if enabled {
         write_config(&exe, texts)?;

@@ -79,6 +79,17 @@ COPY --from=deb /packages /
 #     -> out/scrcpy-agent_<version>_x64-setup.exe, out/scrcpy-agent_<version>_x64_portable.zip
 # Its own base (Debian trixie): the NSIS of bookworm (3.08) lacks an include file that the
 # installer script of Tauri needs (Win\RestartManager.nsh); trixie has 3.11.
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim AS widget-sdk
+FROM widget-sdk AS widget-provider
+WORKDIR /widget
+COPY src-tauri/windows-widget/ ./
+COPY src-tauri/Cargo.toml /app-version.toml
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    version=$(sed -nE 's/^version = "([^"]+)".*/\1/p' /app-version.toml | head -n1) \
+ && dotnet publish Widget.csproj -c Release -r win-x64 --self-contained true -o /provider \
+      -p:EnableWindowsTargeting=true -p:RestoreLockedMode=true -p:NuGetAudit=false \
+      -p:Version="$version" -p:DebugType=None -p:DebugSymbols=false
+
 FROM rust:1-trixie AS windows
 RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential curl ca-certificates pkg-config nsis lld llvm clang zip \
@@ -96,6 +107,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 ENV XWIN_ACCEPT_LICENSE=1
+COPY --from=widget-provider /provider /widget-provider
+ENV WINDOWS_WIDGET_PROVIDER=/widget-provider
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/cache/target-windows \
     --mount=type=cache,target=/root/.cache/cargo-xwin \
