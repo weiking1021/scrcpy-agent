@@ -69,7 +69,8 @@ An add-on can only use the permissions ticked at install. `run_process` (program
 ## Build from source
 
 An experimental Android viewer is in [android/](android/README.md). It pairs directly with another Android 11+
-device and displays its screen. Packaging includes an **unsigned APK**; installation requires signing a copy first.
+device and displays its screen. Packaging exports an unsigned APK by default, or a signed APK when the
+[Android signing secrets](android/README.md#signing-and-device-validation) are configured.
 
 Requirements: [Rust](https://rustup.rs/) (stable), Node.js, and the
 [system libraries Tauri 2 needs](https://tauri.app/start/prerequisites/) (on Windows the MSVC build tools and WebView2;
@@ -82,7 +83,7 @@ installation. Docker supplies the build SDK automatically, only for the Windows 
 npm install
 npm run tauri dev        # run, rebuilding when a file changes
 npm run tauri build      # the program and the installer for this system
-npm run package          # Docker: Linux, Windows, unsigned Android APK and add-on types, into out/
+npm run package          # Docker: Linux, Windows, Android APK and add-on types, into out/
 npm run package -- --sequential  # Build the three targets in turn on machines with less memory
 ```
 

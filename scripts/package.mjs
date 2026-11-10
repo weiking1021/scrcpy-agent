@@ -1,5 +1,5 @@
 // Builds every package into `out/`, with Docker: the Linux program and the .deb
-// (one build), the Windows installer and portable zip, the unsigned Android APK; and the types package of the add-ons
+// (one build), the Windows installer and portable zip, the Android APK; and the types package of the add-ons
 // (`addon-api/`, a .tgz made by `npm pack`). Run with `npm run package`.
 //
 // The three builds run at the same time by default. On machines with less memory,
@@ -15,18 +15,37 @@ import { join } from "node:path";
 
 const OUT = "out";
 const sequential = process.argv.includes("--sequential");
+const APK_SIGNING_SECRETS = [
+  "ANDROID_KEYSTORE_BASE64",
+  "ANDROID_KEYSTORE_PASSWORD",
+  "ANDROID_KEY_ALIAS",
+  "ANDROID_KEY_PASSWORD",
+];
+const supplied = APK_SIGNING_SECRETS.filter((name) => process.env[name]);
+if (supplied.length > 0 && supplied.length !== APK_SIGNING_SECRETS.length) {
+  const missing = APK_SIGNING_SECRETS.filter((name) => !process.env[name]);
+  console.error(`Android signing configuration is incomplete. Missing: ${missing.join(", ")}`);
+  process.exit(1);
+}
+const signApk = supplied.length === APK_SIGNING_SECRETS.length;
 // The targets of the Dockerfile that export files, each with the folder it exports into
 // and the name its lines are shown with.
 const BUILDS = [
   { target: "export-linux", folder: "out.tmp-linux", name: "linux  " },
   { target: "export-windows", folder: "out.tmp-windows", name: "windows" },
-  { target: "export-android", folder: "out.tmp-android", name: "android" },
+  { target: signApk ? "export-android-signed" : "export-android", folder: "out.tmp-android", name: "android" },
 ];
 
 /** Runs one build and resolves with its exit code (a program that cannot be started is 1). */
 function build({ target, folder, name }) {
   return new Promise((resolve) => {
-    const args = ["build", "--progress=plain", "--target", target, "--output", `type=local,dest=${folder}`, "."];
+    const args = ["build", "--progress=plain", "--target", target, "--output", `type=local,dest=${folder}`];
+    if (target === "export-android-signed") {
+      // Secret contents do not invalidate Docker's cache. Always sign with this run's key.
+      args.push("--no-cache-filter", "android-signed");
+      for (const secret of APK_SIGNING_SECRETS) args.push("--secret", `id=${secret},env=${secret}`);
+    }
+    args.push(".");
     const child = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"] });
     for (const stream of [child.stdout, child.stderr]) {
       createInterface({ input: stream }).on("line", (line) => console.log(`[${name}] ${line}`));

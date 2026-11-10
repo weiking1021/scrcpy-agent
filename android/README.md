@@ -59,7 +59,7 @@ session/config/key-frame protocol, not the older v4 documentation.
 
 ## Build
 
-The normal `npm run package` also exports the unsigned Android APK, alongside the
+The normal `npm run package` also exports the Android APK, alongside the
 desktop packages and add-on types. `--sequential` applies to all three builds.
 To build only the APK, without rebuilding the desktop apps:
 
@@ -74,12 +74,31 @@ without installing Node, Gradle or Android tools on the host.
 
 ## Signing and device validation
 
-**Packaging exports unsigned APKs**. A separately signed test copy can be made
-when explicitly authorized, without changing the release signing configuration.
-No debug keystore or release signing key is generated. Android will not install
-an unsigned APK, including through `adb install`. To test on a real device, the
-owner must sign a copy first. An ADB authentication certificate is a separate
-protocol credential generated at app runtime, not an APK signature.
+`npm run package` uses these optional environment variables. For GitHub CD, add
+them under **Settings → Secrets and variables → Actions → Repository secrets**:
+
+| Variable / GitHub secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded contents of the signing `.jks` or `.keystore` file, not its path |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Alias of the signing key in that keystore |
+| `ANDROID_KEY_PASSWORD` | Password of that key; provide this even when it matches the keystore password |
+
+With all four supplied, packaging aligns, signs and verifies the APK, then exports
+`scrcpy-agent_<version>_android.apk`. Without any signing variables it exports
+`scrcpy-agent_<version>_android_unsigned.apk`. Partial configuration fails before
+building; signing or verification failure stops packaging. Release checksums are
+calculated after signing, and the signed APK goes into the existing draft release.
+
+The key and passwords use Docker secret mounts; the decoded keystore stays in a
+temporary memory-backed mount. The signing stage always runs with the current
+secrets, while the unsigned APK compilation can reuse its build cache. Keep the
+same signing key for subsequent updates and retain a backup outside the repository.
+
+The direct `export-android` Docker target above remains unsigned. Gradle does not
+generate a debug keystore or release signing key. Android will not install an
+unsigned APK, including through `adb install`. An ADB authentication certificate
+is a separate protocol credential generated at app runtime, not an APK signature.
 
 After installing an owner-signed copy:
 

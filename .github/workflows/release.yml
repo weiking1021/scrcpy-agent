@@ -29,7 +29,13 @@ jobs:
 
       # The Linux executable and .deb, the Windows installer and portable zip, and the types package of the add-ons
       # (addon-api/, a .tgz), all into out/ (scripts/package.mjs).
-      - run: npm run package
+      - name: Build packages
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: npm run package
 
       - name: Checksums
         run: |

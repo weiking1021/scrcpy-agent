@@ -7,8 +7,9 @@
 #                                        -> out/scrcpy-agent_<version>_amd64.deb
 #   Both (one build):                    docker build --target export-linux --output type=local,dest=out .
 #   The unsigned Android APK:            docker build --target export-android --output type=local,dest=out .
+#   A signed Android APK:                `npm run package` with the ANDROID_KEYSTORE_* / ANDROID_KEY_* secrets.
 #   Everything in one command: `npm run package` (scripts/package.mjs asks for `export-linux`,
-#   `export-windows` and `export-android`: keep its list in step with the targets here).
+#   `export-windows` and `export-android` (or `export-android-signed`): keep its list in step with the targets here).
 #
 # The executable needs the system libraries of Tauri on the machine that runs it
 # (WebKitGTK 4.1 and the Ayatana app indicator; see "runtime" below).
@@ -171,6 +172,31 @@ RUN --mount=type=cache,target=/root/.gradle \
  && version=$(sed -nE 's/^version = "([^"]+)".*/\1/p' src-tauri/Cargo.toml | head -n1) \
  && mkdir /packages \
  && cp "$apk" "/packages/scrcpy-agent_${version}_android_unsigned.apk"
+
+# Signing is separate from compilation: rotating a key never needs to rebuild the APK.
+# The package script bypasses this stage's cache; secrets and the decoded key are temporary mounts.
+FROM android AS android-signed
+RUN --mount=type=secret,id=ANDROID_KEYSTORE_BASE64,required=true \
+    --mount=type=secret,id=ANDROID_KEYSTORE_PASSWORD,required=true \
+    --mount=type=secret,id=ANDROID_KEY_ALIAS,required=true \
+    --mount=type=secret,id=ANDROID_KEY_PASSWORD,required=true \
+    --mount=type=tmpfs,target=/signing \
+    set -eu; \
+    base64 --decode /run/secrets/ANDROID_KEYSTORE_BASE64 > /signing/release.keystore; \
+    apk=$(find /packages -name '*_android_unsigned.apk'); \
+    signed="${apk%_unsigned.apk}.apk"; \
+    "$ANDROID_HOME/build-tools/35.0.0/zipalign" -P 16 -f 4 "$apk" /signing/aligned.apk; \
+    "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+      --ks /signing/release.keystore \
+      --ks-key-alias "$(cat /run/secrets/ANDROID_KEY_ALIAS)" \
+      --ks-pass file:/run/secrets/ANDROID_KEYSTORE_PASSWORD \
+      --key-pass file:/run/secrets/ANDROID_KEY_PASSWORD \
+      --v4-signing-enabled false --out "$signed" /signing/aligned.apk; \
+    "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$signed"; \
+    rm "$apk"
+
+FROM scratch AS export-android-signed
+COPY --from=android-signed /packages /
 
 FROM scratch AS export-android
 COPY --from=android /packages /
