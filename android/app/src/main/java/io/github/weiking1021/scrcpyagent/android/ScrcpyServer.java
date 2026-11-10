@@ -14,7 +14,7 @@ final class ScrcpyServer {
             throw new SecurityException("Server must stay inside application storage");
         if (!server.isFile()) throw new IOException("The selected scrcpy server is not installed");
         String remote = "/data/local/tmp/scrcpy-agent-" + UUID.randomUUID().toString().replace("-", "") + ".jar";
-        AdbSync.push(adb, server, remote, sent -> { });
+        adb.push(server, remote, sent -> { });
         var options = request.getJSONArray("options");
         var arguments = new StringBuilder(connectionOptions);
         for (int index = 0; index < options.length(); index++) arguments.append(' ').append(options.getString(index));

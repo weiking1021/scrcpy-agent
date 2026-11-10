@@ -22,6 +22,7 @@ pub struct AndroidHost {
     bridge: NativeBridge,
     controls: Arc<Mutex<HashMap<String, Control>>>,
     input_ready: Arc<tokio::sync::OnceCell<()>>,
+    window_settings: Mutex<(crate::core::model::AndroidWindowPadding, crate::core::model::AndroidWindowMode)>,
 }
 
 impl AndroidHost {
@@ -30,7 +31,12 @@ impl AndroidHost {
             bridge,
             controls: Default::default(),
             input_ready: Default::default(),
+            window_settings: Mutex::new(Default::default()),
         }
+    }
+
+    pub fn set_window_settings(&self, settings: &crate::core::model::Settings) {
+        *self.window_settings.lock().unwrap() = (settings.android_window_padding_dp, settings.android_window_mode);
     }
 }
 
@@ -108,11 +114,26 @@ impl ScrcpyHost for AndroidHost {
         let bridge = self.bridge.clone();
         let controls = self.controls.clone();
         let input_ready = self.input_ready.clone();
+        let (window_padding, window_mode) = *self.window_settings.lock().unwrap();
         Box::pin(async move {
             if !spec.extra_args.is_empty() {
                 bail!("the Android presenter does not support extra desktop client arguments");
             }
             let protocol = adapter(&install)?;
+            let screen = if let Some(size) = spec.app.as_ref()
+                .filter(|app| app.display == crate::core::apps::AppDisplay::VirtualDisplay)
+                .and_then(|app| app.size)
+            {
+                size
+            } else {
+                use crate::core::{adb::{api::AdbApi, android::AndroidAdb}, device::display};
+                let adb = AndroidAdb::new(bridge.clone());
+                let output = tokio::time::timeout(Duration::from_secs(10), adb.shell(&spec.serial, display::DISPLAY_DUMP_COMMAND))
+                    .await.context("remote display query timed out")??;
+                if output.exit != 0 { bail!("could not read the remote display dimensions"); }
+                display::current_size(&String::from_utf8_lossy(&output.stdout))
+                    .context("the remote display did not report its current dimensions")?
+            };
             let initial_control = spec
                 .app
                 .as_ref()
@@ -123,6 +144,7 @@ impl ScrcpyHost for AndroidHost {
                 })
                 .transpose()?;
             let options = protocol.server_options(&spec)?;
+            let audio_options = protocol.audio_server_options()?;
             input_ready
                 .get_or_try_init(|| async {
                     let controls = controls.clone();
@@ -225,6 +247,10 @@ impl ScrcpyHost for AndroidHost {
                 "key": key, "serial": spec.serial, "title": spec.title,
                 "version": install.version.trim_start_matches('v'), "serverPath": install.server(),
                 "options": options, "initialControl": initial_control,
+                "windowPaddingDp": window_padding.dp(), "windowMode": window_mode,
+                "audioDevice": crate::core::apps::SessionKey::parse(&key).device,
+                "audioOptions": audio_options,
+                "screenWidth": screen.width, "screenHeight": screen.height,
             }))).await.context("session did not become ready in time").and_then(|result| result);
             if let Err(error) = start {
                 controls.lock().unwrap().remove(&key);

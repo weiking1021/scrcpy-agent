@@ -74,6 +74,8 @@ pub fn run() {
         let handle = app.handle().clone();
         let (requests, mut changed) = tokio::sync::watch::channel(());
         let request_app = handle.clone();
+        let host = Arc::new(AndroidHost::new(app.state::<NativeBridge>().inner().clone()));
+        let settings_host = host.clone();
         tauri::async_runtime::spawn(async move {
             let mut shown = None;
             while changed.changed().await.is_ok() {
@@ -81,6 +83,9 @@ pub fn run() {
             }
         });
         let sink: Sink = Arc::new(move |event| {
+            if let crate::core::model::Event::State(snapshot) = &event {
+                settings_host.set_window_settings(&snapshot.settings);
+            }
             if matches!(&event, crate::core::model::Event::Request(_)) {
                 requests.send_replace(());
             }
@@ -89,16 +94,23 @@ pub fn run() {
         let root = app.path().app_data_dir()?;
         let options = CoreOptions {
             android: Some(AndroidAdb::new(app.state::<NativeBridge>().inner().clone())),
-            scrcpy_host: Some(Arc::new(AndroidHost::new(
-                app.state::<NativeBridge>().inner().clone(),
-            ))),
+            scrcpy_host: Some(host.clone()),
             disable_own_mdns: true, // Android's NSD implementation supplies the same services through AdbApi.
             ..Default::default()
         };
         let core = Core::with_options(root, sink, options);
+        host.set_window_settings(&core.snapshot().settings);
         app.manage(core.clone());
         tauri::async_runtime::spawn(core.clone().run());
         let bridge = app.state::<NativeBridge>().inner().clone();
+        let shortcut_core = core.clone();
+        let shortcut_bridge = bridge.clone();
+        let shortcut_app = app.handle().clone();
+        tauri::async_runtime::spawn(async move {
+            if let Err(error) = crate::commands::shortcuts::receive(shortcut_app, shortcut_core, shortcut_bridge).await {
+                eprintln!("Android shortcut receiver failed: {error:#}");
+            }
+        });
         tauri::async_runtime::spawn(async move {
             if let Err(error) = shares::receive(core, bridge).await {
                 eprintln!("Android share receiver failed: {error:#}");

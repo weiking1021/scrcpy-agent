@@ -1,8 +1,6 @@
 package io.github.weiking1021.scrcpyagent.android;
 
 import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -13,15 +11,6 @@ import java.util.function.LongConsumer;
 
 /** The sync service used by both shared file transfers and the scrcpy server upload. */
 final class AdbSync {
-    static long push(AdbClient client, File local, String remote, LongConsumer progress) throws Exception {
-        if (!local.isFile()) throw new IOException("Source is not a file");
-        // Open the source before asking the device for anything.
-        try (var source = new FileInputStream(local); var stream = client.openStream("sync:");
-             var input = stream.openInputStream(); var output = stream.openOutputStream()) {
-            return send(source, input, output, remote, local.lastModified() / 1000, progress);
-        }
-    }
-
     static long send(InputStream source, InputStream response, OutputStream output,
         String remote, long modified, LongConsumer progress) throws IOException {
         if (remote.isEmpty() || remote.indexOf('\0') >= 0 || remote.indexOf('\n') >= 0)

@@ -1,4 +1,13 @@
 <resources>
+  <string name="audio_channel">鏡像音訊</string>
+  <string name="audio_notification">鏡像音訊播放服務</string>
+  <string name="window_failed">無法開啟鏡像視窗：%1$s</string>
+  <string name="window_close">關閉鏡像</string>
+  <string name="window_resize">調整鏡像大小</string>
+  <string name="window_overlay_denied">尚未允許顯示在其他應用程式上層。</string>
+  <string name="window_pip_unsupported">這台裝置不支援子母畫面。</string>
+  <string name="window_shizuku_unavailable">請先啟動 Shizuku 13 以上版本，再重試。</string>
+  <string name="window_shizuku_denied">尚未授予 Shizuku 權限。</string>
   <string name="connecting">正在連線並啟動遠端畫面…</string>
   <string name="share_send_choose">傳送到指定裝置 · ScrcpyAgent</string>
   <string name="share_send_default">傳送到預設裝置 · ScrcpyAgent</string>

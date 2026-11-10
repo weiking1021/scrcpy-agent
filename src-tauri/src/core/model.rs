@@ -351,6 +351,42 @@ pub enum KeyboardMode {
     Uhid,
 }
 
+/// How Android presents a newly opened mirror.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AndroidWindowMode {
+    #[default]
+    Freeform,
+    Overlay,
+    Pip,
+    Shizuku,
+}
+
+/// The intentional black margin above and below an Android mirror, in dp.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "u32", into = "u32")]
+pub struct AndroidWindowPadding(u32);
+
+impl AndroidWindowPadding {
+    pub const MAX: u32 = 128;
+    pub fn dp(self) -> u32 { self.0 }
+}
+
+impl Default for AndroidWindowPadding {
+    fn default() -> Self { Self(16) }
+}
+
+impl TryFrom<u32> for AndroidWindowPadding {
+    type Error = String;
+    fn try_from(dp: u32) -> Result<Self, String> {
+        if dp <= Self::MAX { Ok(Self(dp)) } else { Err(format!("{dp} is more than {} dp", Self::MAX)) }
+    }
+}
+
+impl From<AndroidWindowPadding> for u32 {
+    fn from(value: AndroidWindowPadding) -> u32 { value.0 }
+}
+
 /// Where files are sent to unless the setting says otherwise.
 pub const DEFAULT_SEND_DIRECTORY: &str = "/sdcard/Download/scrcpy-agent";
 
@@ -433,6 +469,10 @@ pub struct Settings {
     /// The bit rate of the video (the picture quality); 0 is scrcpy's own choice.
     #[serde(deserialize_with = "lenient")]
     pub video_bit_rate_mbps: BitRateMbps,
+    #[serde(deserialize_with = "lenient")]
+    pub android_window_padding_dp: AndroidWindowPadding,
+    #[serde(deserialize_with = "lenient")]
+    pub android_window_mode: AndroidWindowMode,
     /// The folder on a device that files are sent to.
     pub send_directory: String,
     /// The device that "send to the default device" and "open on the default
@@ -488,6 +528,8 @@ impl Default for Settings {
             scrcpy_mode: ScrcpyMode::default(),
             keyboard_mode: KeyboardMode::default(),
             video_bit_rate_mbps: BitRateMbps::default(),
+            android_window_padding_dp: AndroidWindowPadding::default(),
+            android_window_mode: AndroidWindowMode::default(),
             send_directory: DEFAULT_SEND_DIRECTORY.into(),
             default_device: None,
             launch_at_login: false,
@@ -512,6 +554,35 @@ mod tests {
     use super::*;
     use crate::core::addons::buttons::{ButtonId, ButtonPref};
     use crate::core::window::layout::Side;
+
+    #[test]
+    fn android_window_mode_defaults_and_round_trips() {
+        for value in ["{}", r#"{"android_window_mode":"unknown"}"#] {
+            let settings: Settings = serde_json::from_str(value).unwrap();
+            assert_eq!(settings.android_window_mode, AndroidWindowMode::Freeform);
+        }
+        for mode in [AndroidWindowMode::Freeform, AndroidWindowMode::Overlay, AndroidWindowMode::Pip, AndroidWindowMode::Shizuku] {
+            let settings = Settings { android_window_mode: mode, ..Default::default() };
+            let saved = serde_json::to_string(&settings).unwrap();
+            assert_eq!(serde_json::from_str::<Settings>(&saved).unwrap().android_window_mode, mode);
+        }
+    }
+    #[test]
+    fn android_window_padding_is_bounded_and_old_settings_keep_the_default() {
+        let old: Settings = serde_json::from_str("{}").unwrap();
+        assert_eq!(old.android_window_padding_dp.dp(), 16);
+        for dp in [0, 16, 128] {
+            let mut settings = old.clone();
+            settings.android_window_padding_dp = AndroidWindowPadding::try_from(dp).unwrap();
+            let saved = serde_json::to_string(&settings).unwrap();
+            assert_eq!(serde_json::from_str::<Settings>(&saved).unwrap(), settings);
+        }
+        for bad in ["-1", "129", "1.5", "null", "\"16\""] {
+            let settings: Settings = serde_json::from_str(&format!(r#"{{"android_window_padding_dp":{bad},"close_to_tray":false}}"#)).unwrap();
+            assert_eq!(settings.android_window_padding_dp.dp(), 16);
+            assert!(!settings.close_to_tray);
+        }
+    }
 
     #[test]
     fn the_toolbar_is_on_by_default_on_the_right_and_not_above_all_other_windows() {

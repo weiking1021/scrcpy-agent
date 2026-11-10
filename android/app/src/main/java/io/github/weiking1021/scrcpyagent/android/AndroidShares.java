@@ -8,7 +8,6 @@ import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -36,22 +35,13 @@ final class AndroidShares implements AutoCloseable {
         remove(root);
     }
 
-    static String actionFor(String component) {
-        String prefix = AndroidShares.class.getPackage().getName() + ".";
-        if (component.equals(prefix + "ShareSendChoose")) return "send-choose";
-        if (component.equals(prefix + "ShareSendDefault")) return "send-default";
-        if (component.equals(prefix + "ShareOpenChoose")) return "open-choose";
-        if (component.equals(prefix + "ShareOpenDefault")) return "open-default";
-        return null;
-    }
-
     void receive(Intent intent) {
         try { accept(intent); } catch (RuntimeException error) { failed(error); }
     }
 
     private void accept(Intent intent) {
         if (closed || intent == null || intent.getComponent() == null || intent.getBooleanExtra(CONSUMED, false)) return;
-        String action = actionFor(intent.getComponent().getClassName());
+        String action = ShareImport.actionFor(intent.getComponent().getClassName());
         if (action == null || !(Intent.ACTION_SEND.equals(intent.getAction()) || Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction()))) return;
         intent.putExtra(CONSUMED, true);
         var uris = new ArrayList<Uri>();
@@ -130,14 +120,7 @@ final class AndroidShares implements AutoCloseable {
             String extension = mime == null ? null : MimeTypeMap.getSingleton().getExtensionFromMimeType(mime);
             name = "shared-file" + (extension == null ? "" : "." + extension);
         }
-        return checkedName(name);
-    }
-
-    static String checkedName(String name) throws IOException {
-        if (name.isEmpty() || name.equals(".") || name.equals("..") || name.contains("/") || name.contains("\\")
-            || name.getBytes(StandardCharsets.UTF_8).length > 255 || name.codePoints().anyMatch(Character::isISOControl))
-            throw new IOException("Invalid shared file name");
-        return name;
+        return ShareImport.checkedName(name);
     }
 
     JSONArray take() {

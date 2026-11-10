@@ -8,6 +8,8 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.conscrypt.Conscrypt;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.security.KeyFactory;
@@ -20,6 +22,7 @@ import java.security.cert.CertificateFactory;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 
 /** Direct adbd connection, including Android 11+ TLS pairing; no PC adb server. */
 final class AdbClient extends AbsAdbConnectionManager {
@@ -48,6 +51,15 @@ final class AdbClient extends AbsAdbConnectionManager {
         // Remote Android 11+ is the baseline, independent of this phone's API level.
         setApi(30);
         setTimeout(15, TimeUnit.SECONDS);
+    }
+
+    long push(File local, String remote, LongConsumer progress) throws Exception {
+        if (!local.isFile()) throw new IOException("Source is not a file");
+        // Open the source before asking the device for anything.
+        try (var source = new FileInputStream(local); var stream = openStream("sync:");
+             var input = stream.openInputStream(); var output = stream.openOutputStream()) {
+            return AdbSync.send(source, input, output, remote, local.lastModified() / 1000, progress);
+        }
     }
 
     @Override protected PrivateKey getPrivateKey() { return key; }

@@ -17,6 +17,7 @@ mod android;
 use android::{tray, windows};
 mod widget;
 
+#[cfg(not(target_os = "android"))]
 pub use crate::commands::shortcuts::ShortcutPlaces;
 
 #[cfg(not(target_os = "android"))]

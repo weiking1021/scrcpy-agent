@@ -17,6 +17,7 @@ class DevicePlugin(private val activity: Activity) : Plugin(activity) {
     private val workers = Executors.newFixedThreadPool(4)
     private val backend by lazy { DeviceBackend(activity) { event, data -> trigger(event, JSObject(data.toString())) } }
     private val shares by lazy { AndroidShares(activity) { trigger("share", JSObject()) } }
+    private val shortcuts by lazy { AndroidShortcuts(activity) { trigger("appShortcut", JSObject()) } }
 
     private external fun initializeTls(context: android.content.Context)
 
@@ -24,9 +25,13 @@ class DevicePlugin(private val activity: Activity) : Plugin(activity) {
         initializeTls(activity.applicationContext)
         backend
         shares.receive(activity.intent)
+        shortcuts.receive(activity.intent)
     }
 
-    override fun onNewIntent(intent: Intent) { shares.receive(intent) }
+    override fun onNewIntent(intent: Intent) {
+        shares.receive(intent)
+        shortcuts.receive(intent)
+    }
 
     override fun onDestroy(activity: AppCompatActivity) {
         workers.execute { backend.close(); shares.close() }
@@ -42,6 +47,10 @@ class DevicePlugin(private val activity: Activity) : Plugin(activity) {
                 val result = when (val operation = args.getString("operation")) {
                     "takeShares" -> shares.take()
                     "releaseShare" -> { shares.release(data.getString("batch")); JSObject() }
+                    "shortcutsAvailable" -> shortcuts.available()
+                    "appShortcutState" -> shortcuts.state(data)
+                    "pinAppShortcut" -> shortcuts.pin(data)
+                    "takeAppShortcuts" -> shortcuts.take()
                     else -> backend.execute(operation, data)
                 }
                 if (result is CompletableFuture<*>) result.whenComplete { value, error ->

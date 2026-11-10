@@ -7,7 +7,7 @@ import { $, esc } from "../shared/dom";
 import { languages, t } from "../shared/i18n";
 import { wholeNumber } from "../shared/numbers";
 import { showError, toast } from "../shared/toast";
-import { isAdbBackend, isKeyboardMode, isScrcpyMode, isSide } from "../shared/types";
+import { isAdbBackend, isAndroidWindowMode, isKeyboardMode, isScrcpyMode, isSide } from "../shared/types";
 import type { FileManager, Settings, Snapshot } from "../shared/types";
 import { parseAppName } from "./appName";
 import { loadThemes, renderThemeOptions } from "./themes";
@@ -72,6 +72,8 @@ function controls() {
     scrcpyMode: $<HTMLSelectElement>("set-scrcpy-mode"),
     keyboardMode: $<HTMLSelectElement>("set-keyboard-mode"),
     bitRate: $<HTMLInputElement>("set-bit-rate"),
+    androidPadding: $<HTMLInputElement>("set-android-window-padding"),
+    androidWindowMode: $<HTMLSelectElement>("set-android-window-mode"),
     refresh: $<HTMLInputElement>("set-device-refresh"),
     requestClose: $<HTMLInputElement>("set-request-close"),
     sendDirectory: $<HTMLInputElement>("set-send-directory"),
@@ -109,6 +111,8 @@ export function fillSettings(): void {
   c.scrcpyMode.value = s.scrcpy_mode;
   c.keyboardMode.value = s.keyboard_mode;
   c.bitRate.value = String(s.video_bit_rate_mbps);
+  c.androidPadding.value = String(s.android_window_padding_dp);
+  c.androidWindowMode.value = s.android_window_mode;
   c.refresh.value = String(s.device_refresh_seconds);
   c.requestClose.value = String(s.request_close_seconds);
   c.sendDirectory.value = s.send_directory;
@@ -176,6 +180,8 @@ function readControls(c: Controls, snap: Snapshot, resetLayout: boolean): Settin
     scrcpy_mode: isScrcpyMode(c.scrcpyMode.value) ? c.scrcpyMode.value : now.scrcpy_mode,
     keyboard_mode: isKeyboardMode(c.keyboardMode.value) ? c.keyboardMode.value : now.keyboard_mode,
     video_bit_rate_mbps: wholeNumber(c.bitRate.value, 0, 200, now.video_bit_rate_mbps),
+    android_window_padding_dp: wholeNumber(c.androidPadding.value, 0, 128, now.android_window_padding_dp),
+    android_window_mode: isAndroidWindowMode(c.androidWindowMode.value) ? c.androidWindowMode.value : now.android_window_mode,
     device_refresh_seconds: wholeNumber(c.refresh.value, 0, 3600, now.device_refresh_seconds),
     request_close_seconds: wholeNumber(c.requestClose.value, 0, 60, now.request_close_seconds),
     send_directory: c.sendDirectory.value.trim(),

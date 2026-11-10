@@ -1,0 +1,16 @@
+// Exercise the same Java logic used by the Android host, without Android runtime classes.
+plugins { id 'java' }
+
+repositories { mavenCentral() }
+java { toolchain { languageVersion = JavaLanguageVersion.of(17) } }
+
+sourceSets {
+    main.java {
+        srcDir '../app/src/main/java'
+        include '**/AdbSync.java', '**/ShareImport.java', '**/MirrorGeometry.java', '**/PcmAudio.java'
+    }
+    test.java.srcDir '../app/src/test/java'
+}
+
+dependencies { testImplementation 'junit:junit:4.13.2' }
+test { useJUnit() }

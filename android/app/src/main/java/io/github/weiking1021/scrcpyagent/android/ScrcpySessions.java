@@ -1,9 +1,7 @@
 package io.github.weiking1021.scrcpyagent.android;
 
 import android.app.Activity;
-import android.app.ActivityOptions;
 import android.content.Intent;
-import android.graphics.Rect;
 import android.net.Uri;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,14 +20,37 @@ final class ScrcpySessions {
         final CompletableFuture<JSONObject> ended = new CompletableFuture<>();
         volatile MirrorSession session;
         volatile Activity activity;
+        final MirrorWindows.Mode mode;
+        volatile ShizukuWindow windowControl;
+        volatile int videoWidth, videoHeight;
+        final String launchToken = java.util.UUID.randomUUID().toString();
+        final java.util.concurrent.atomic.AtomicBoolean tokenUsed = new java.util.concurrent.atomic.AtomicBoolean();
+
+        int paddingPx(android.content.Context context) {
+            int dp = Math.max(0, Math.min(128, request.optInt("windowPaddingDp", 16)));
+            return Math.round(dp * context.getResources().getDisplayMetrics().density);
+        }
 
         Entry(JSONObject request, Consumer<JSONObject> input) throws Exception {
             this.key = request.getString("key");
             this.request = request;
             this.input = input;
+            mode = MirrorWindows.Mode.valueOf(request.getString("windowMode").toUpperCase(java.util.Locale.ROOT));
+            videoWidth = request.getInt("screenWidth");
+            videoHeight = request.getInt("screenHeight");
+            if (videoWidth < 1 || videoHeight < 1 || videoWidth > 16384 || videoHeight > 16384)
+                throw new IllegalArgumentException("Invalid remote screen dimensions");
+        }
+
+        void ui(java.util.function.Consumer<MirrorActivity> update) {
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                if (activity instanceof MirrorActivity window && !window.isFinishing() && !window.isDestroyed()) update.accept(window);
+            });
         }
 
         void end(Exception error) {
+            var control = windowControl;
+            if (control != null) { windowControl = null; control.close(); }
             if (error != null) ready.completeExceptionally(error);
             else if (!ready.isDone()) ready.completeExceptionally(new java.io.IOException("Session closed before it was ready"));
             try {
@@ -46,18 +67,19 @@ final class ScrcpySessions {
         });
         owner.runOnUiThread(() -> {
             try {
+                if (entry.ready.isDone()) return;
+                if (entry.mode == MirrorWindows.Mode.SHIZUKU) {
+                    var control = new ShizukuWindow(owner, entry);
+                    entry.windowControl = control;
+                    control.open();
+                    return;
+                }
                 var intent = new Intent(owner, MirrorActivity.class)
                     .setData(Uri.parse("scrcpy-agent://session/" + Uri.encode(entry.key)))
                     .putExtra("sessionKey", entry.key)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-                var metrics = owner.getResources().getDisplayMetrics();
-                int width = metrics.widthPixels * 2 / 3, height = metrics.heightPixels * 4 / 5;
-                int left = (metrics.widthPixels - width) / 2, top = (metrics.heightPixels - height) / 2;
-                var options = ActivityOptions.makeBasic();
-                // A public launch hint: the OS decides whether freeform windows are supported.
-                options.setLaunchBounds(new Rect(left, top, left + width, top + height));
-                owner.startActivity(intent, options.toBundle());
-            } catch (Exception error) { entry.end(error); }
+                owner.startActivity(intent, MirrorWindows.options(owner, entry));
+            } catch (Exception error) { MirrorWindows.fail(owner, entry, error); }
         });
         return entry.ready;
     }

@@ -145,7 +145,7 @@ final class DeviceBackend implements AutoCloseable {
                 var client = clients.get(data.getString("serial"));
                 if (client == null) throw new java.io.IOException("Device is not connected");
                 long id = data.getLong("id");
-                return AdbSync.push(client, new java.io.File(data.getString("local")), data.getString("remote"), sent -> {
+                return client.push(new java.io.File(data.getString("local")), data.getString("remote"), sent -> {
                     try { events.accept("adb-push", new JSONObject().put("id", id).put("sent", sent)); }
                     catch (org.json.JSONException error) { throw new IllegalStateException(error); }
                 });

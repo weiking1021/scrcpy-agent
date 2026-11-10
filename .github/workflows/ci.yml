@@ -54,3 +54,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build --target check .
+
+  # Android's protocol and geometry unit tests need only the JVM, not an APK or device.
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: bash src-tauri/gen/android/gradlew --project-dir android/tests test --no-daemon

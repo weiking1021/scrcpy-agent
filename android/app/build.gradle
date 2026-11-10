@@ -14,7 +14,7 @@ android {
         versionName appVersion
         buildConfigField 'String', 'SCRCPY_VERSION', '"' + serverVersion + '"'
     }
-    buildFeatures { buildConfig true }
+    buildFeatures { buildConfig true; aidl true }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     buildTypes {
         // Deliberately unsigned, including debug: no signing key is generated.
@@ -23,6 +23,7 @@ android {
     }
     sourceSets.main.assets.srcDir(serverAssets.get().asFile)
     sourceSets.main.java.srcDir(rootProject.file('../../../android/app/src/main/java'))
+    sourceSets.main.aidl.srcDir(rootProject.file('../../../android/app/src/main/aidl'))
     sourceSets.main.res.srcDir(rootProject.file('../../../android/app/src/main/res'))
     sourceSets.main.manifest.srcFile(rootProject.file('../../../android/app/src/main/AndroidManifest.xml'))
     sourceSets.test.java.srcDir(rootProject.file('../../../android/app/src/test/java'))
@@ -43,6 +44,8 @@ repositories {
 }
 
 dependencies {
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
     testImplementation 'junit:junit:4.13.2'
     implementation "org.rustls:rustls-platform-verifier:${verifierVersion}"
     implementation 'com.github.MuntashirAkon:libadb-android:3.1.1'

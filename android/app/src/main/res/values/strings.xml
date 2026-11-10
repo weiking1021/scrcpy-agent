@@ -1,4 +1,13 @@
 <resources>
+  <string name="audio_channel">Mirror audio</string>
+  <string name="audio_notification">Mirror audio playback service</string>
+  <string name="window_failed">Could not open mirror window: %1$s</string>
+  <string name="window_close">Close mirror</string>
+  <string name="window_resize">Resize mirror</string>
+  <string name="window_overlay_denied">Overlay permission was not granted.</string>
+  <string name="window_pip_unsupported">This device does not support picture-in-picture.</string>
+  <string name="window_shizuku_unavailable">Start Shizuku 13 or later, then try again.</string>
+  <string name="window_shizuku_denied">Shizuku permission was not granted.</string>
   <string name="connecting">Connecting and starting the remote screen…</string>
   <string name="share_send_choose">Send to a device · ScrcpyAgent</string>
   <string name="share_send_default">Send to default device · ScrcpyAgent</string>

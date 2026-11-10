@@ -5,6 +5,13 @@
 use crate::core::apps::PackageName;
 use crate::core::window::layout::Os;
 
+/// Which places currently have a shortcut of an app.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ShortcutState {
+    pub desktop: bool,
+    pub start_menu: bool,
+}
+
 /// What a shortcut is made of on a system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]

@@ -151,6 +151,27 @@
           <section class="group">
             <h2 data-i18n="settings.group_screen">Screen and input</h2>
             <div class="group-body">
+              <div class="setting" hidden>
+                <div class="setting-text">
+                  <label class="setting-name" for="set-android-window-mode" data-i18n="settings.android_window_mode">Android mirror window</label>
+                  <p class="setting-hint" data-i18n="settings.android_window_mode_hint">Applies to newly opened mirrors. Overlay requires permission; picture-in-picture is for viewing. Shizuku must be running and authorized.</p>
+                </div>
+                <div class="setting-control">
+                  <select id="set-android-window-mode">
+                    <option value="freeform" data-i18n="settings.android_window_freeform">Launch-parameter freeform (default)</option>
+                    <option value="overlay" data-i18n="settings.android_window_overlay">Overlay window</option>
+                    <option value="pip" data-i18n="settings.android_window_pip">Picture-in-picture</option>
+                    <option value="shizuku">Shizuku</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting" hidden>
+                <div class="setting-text">
+                  <label class="setting-name" for="set-android-window-padding" data-i18n="settings.android_window_padding">Android mirror: top and bottom margin (dp per side)</label>
+                  <p class="setting-hint" data-i18n="settings.android_window_padding_hint">Adds the same black margin above and below the image. 0 removes this margin. Applies to newly opened mirrors; system window decorations and additional space required by the window mode are separate.</p>
+                </div>
+                <div class="setting-control"><input id="set-android-window-padding" type="number" min="0" max="128" step="1" inputmode="numeric" /></div>
+              </div>
               <div class="setting">
                 <div class="setting-text">
                   <label class="setting-name" for="set-keyboard-mode" data-i18n="settings.keyboard_mode">Keyboard input</label>

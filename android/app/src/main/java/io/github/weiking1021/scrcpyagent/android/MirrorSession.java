@@ -37,6 +37,7 @@ final class MirrorSession {
     private MediaCodec decoder;
     private final org.json.JSONObject request;
     private boolean started;
+    private volatile DeviceAudio.Lease audio;
 
     MirrorSession(Context context, Surface surface, Listener listener, org.json.JSONObject request) {
         this.context = context.getApplicationContext();
@@ -50,6 +51,8 @@ final class MirrorSession {
             adb = new AdbClient(context);
             if (stopped) return;
             if (!adb.connect(host, port)) throw new IOException("ADB connection was not accepted");
+            if (stopped) return;
+            audio = DeviceAudio.acquire(context, request);
             if (stopped) return;
             int id = new java.security.SecureRandom().nextInt(Integer.MAX_VALUE);
             String socket = String.format(Locale.ROOT, "scrcpy_%08x", id);
@@ -124,6 +127,7 @@ final class MirrorSession {
             if (!stopped) listener.failed(error);
         } finally {
             stopped = true;
+            close(audio);
             inputEvents.shutdownNow();
             controlOutput = null;
             close(control);
@@ -136,6 +140,7 @@ final class MirrorSession {
 
     void stop() {
         stopped = true;
+        close(audio);
         inputEvents.shutdownNow();
         // Closing the transport interrupts blocking reads/open operations off the UI thread.
         var cleanup = new Thread(() -> close(adb), "scrcpy-disconnect");

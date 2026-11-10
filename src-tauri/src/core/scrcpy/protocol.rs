@@ -170,6 +170,11 @@ pub trait ScrcpyProtocol: Send + Sync {
         Err(ProtocolError::UnsupportedControlMessage)
     }
 
+    /// A device-wide audio stream shared by native mirror windows.
+    fn audio_server_options(&self) -> Result<Vec<String>, ProtocolError> {
+        Err(ProtocolError::UnsupportedControlMessage)
+    }
+
     fn video_parser(&self, start: VideoStreamStart) -> Box<dyn VideoStreamParser>;
 
     /// The arguments that make scrcpy connect to a proxy listening on this

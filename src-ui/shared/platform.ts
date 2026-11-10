@@ -5,6 +5,10 @@ import { t } from "./i18n";
 export async function initPlatform(): Promise<void> {
   const platform = await invoke<string>("host_platform");
   document.documentElement.dataset.platform = platform;
+  for (const id of ["set-android-window-padding", "set-android-window-mode"]) {
+    const row = document.getElementById(id)?.closest<HTMLElement>(".setting");
+    if (row) row.hidden = platform !== "android";
+  }
   if (platform !== "android") return;
   // Desktop process/window controls have no Android implementation in the viewer.
   for (const id of ["set-close-to-tray", "set-adb-backend", "set-scrcpy-mode", "set-keyboard-mode",

@@ -13,5 +13,9 @@ pub mod requests;
 pub mod scrcpy;
 pub mod sessions;
 pub mod settings;
+#[cfg(not(target_os = "android"))]
+pub mod shortcuts;
+#[cfg(target_os = "android")]
+#[path = "../android/shortcuts.rs"]
 pub mod shortcuts;
 pub mod themes;

@@ -127,6 +127,13 @@ export function isKeyboardMode(value: string): value is KeyboardMode {
   return (KEYBOARD_MODES as readonly string[]).includes(value);
 }
 
+export const ANDROID_WINDOW_MODES = ["freeform", "overlay", "pip", "shizuku"] as const;
+export type AndroidWindowMode = (typeof ANDROID_WINDOW_MODES)[number];
+
+export function isAndroidWindowMode(value: string): value is AndroidWindowMode {
+  return (ANDROID_WINDOW_MODES as readonly string[]).includes(value);
+}
+
 export interface Settings {
   toolbar: ToolbarSettings;
   adb_backend: AdbBackend;
@@ -134,6 +141,9 @@ export interface Settings {
   keyboard_mode: KeyboardMode;
   /** The bit rate of the video in megabits per second: 0 (scrcpy's own choice) or 1 to 200. */
   video_bit_rate_mbps: number;
+  /** Intentional margin on each vertical side of Android mirrors, in dp (0 to 128). */
+  android_window_padding_dp: number;
+  android_window_mode: AndroidWindowMode;
   /** How often a device's window reads the device again: 0 (never) or 1 to 3600 seconds. */
   device_refresh_seconds: number;
   /** Seconds the small window of a request stays after it went well: 0 to 60. */
@@ -426,7 +436,7 @@ export interface AppEntry {
 export type ShortcutPlace = "desktop" | "start_menu";
 
 /** What a shortcut is on this system: a Windows link, or a desktop entry of the Linux desktops. */
-export type ShortcutKind = "windows_link" | "desktop_entry";
+export type ShortcutKind = "windows_link" | "desktop_entry" | "android_pinned";
 
 /** Which places have a shortcut of an app now. */
 export interface ShortcutState {

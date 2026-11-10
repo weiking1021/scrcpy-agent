@@ -30,12 +30,14 @@ export async function openAppMenu(
   const device = state.deviceId;
   let items: AppMenuItem[];
   let shortcuts: ShortcutState | null = null;
+  let pinned = false;
   // What the menu of applications is called depends on the system.
   let menuWords = { add: "apps.menu_shortcut_start", remove: "apps.menu_shortcut_start_remove" };
   try {
     items = await invoke<AppMenuItem[]>("app_menu", { device, package: pkg });
     // Where shortcuts cannot be made the state is refused: the entries are left out.
     const kind = await invoke<ShortcutKind | null>("shortcuts_available");
+    pinned = kind === "android_pinned";
     if (kind !== null) {
       shortcuts = await invoke<ShortcutState>("app_shortcut_state", { device, package: pkg });
       if (kind === "desktop_entry") {
@@ -49,7 +51,9 @@ export async function openAppMenu(
   const marked = actions.favorites().includes(pkg);
   const makeShortcut = (place: ShortcutPlace) =>
     invoke<string>("create_app_shortcut", { device, package: pkg, place })
-      .then((path) => toast("info", t("apps.shortcut_made"), path))
+      .then((path) => pinned
+        ? toast("info", t("apps.shortcut_pin_requested"))
+        : toast("info", t("apps.shortcut_made"), path))
       .catch(showError);
   const removeShortcut = (place: ShortcutPlace) =>
     invoke("remove_app_shortcut", { device, package: pkg, place })
@@ -90,15 +94,15 @@ export async function openAppMenu(
         if (shortcuts) {
           const there = shortcuts.desktop;
           entries.push({
-            label: t(there ? "apps.menu_shortcut_desktop_remove" : "apps.menu_shortcut_desktop"),
-            enabled: there || item.enabled,
+            label: t(there ? (pinned ? "apps.shortcut_pinned" : "apps.menu_shortcut_desktop_remove") : "apps.menu_shortcut_desktop"),
+            enabled: pinned && there ? false : there || item.enabled,
             separator: true,
             run: () => void (there ? removeShortcut("desktop") : makeShortcut("desktop")),
           });
         }
         break;
       case "shortcut_start_menu":
-        if (shortcuts) {
+        if (shortcuts && !pinned) {
           const there = shortcuts.start_menu;
           entries.push({
             label: t(there ? menuWords.remove : menuWords.add),

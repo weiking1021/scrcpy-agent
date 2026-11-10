@@ -30,6 +30,10 @@ impl Native {
                         }
                         "waitSession" => Ok(json!({"success": true, "tail": ""})),
                         "queryServer" => Ok(json!({"stdout": [65, 66], "stderr": [], "exit": 0})),
+                        "shell" => Ok(json!({
+                            "stdout": b"mOverrideDisplayInfo=DisplayInfo{\"Display\", displayId 0\", real 1080 x 2520, x\n".to_vec(),
+                            "stderr": [], "exit": 0,
+                        })),
                         _ => Ok(json!({})),
                     };
                     Box::pin(async move { reply })
@@ -87,6 +91,11 @@ fn spec() -> SessionSpec {
 #[tokio::test]
 async fn app_launch_uses_selected_server_and_shared_control_encoding() {
     let native = Native::new();
+    native.host.set_window_settings(&crate::core::model::Settings {
+        android_window_padding_dp: crate::core::model::AndroidWindowPadding::try_from(24).unwrap(),
+        android_window_mode: crate::core::model::AndroidWindowMode::Overlay,
+        ..Default::default()
+    });
     let package = PackageName::parse("com.example.notes").unwrap();
     let mut spec = spec();
     spec.bit_rate = BitRateMbps::new(12).unwrap();
@@ -110,6 +119,14 @@ async fn app_launch_uses_selected_server_and_shared_control_encoding() {
     let request = native.request("startSession");
     assert_eq!(request["serverPath"], json!(install().server()));
     assert_eq!(request["version"], "5.0.1");
+    assert_eq!(request["windowPaddingDp"], 24);
+    assert_eq!(request["windowMode"], "overlay");
+    assert_eq!(request["audioDevice"], "device");
+    assert_eq!((request["screenWidth"].as_u64(), request["screenHeight"].as_u64()), (Some(1280), Some(720)));
+    let audio = request["audioOptions"].as_array().unwrap();
+    for option in ["video=false", "audio=true", "control=false", "audio_codec=raw", "audio_source=playback", "send_dummy_byte=false", "send_device_meta=false"] {
+        assert!(audio.contains(&json!(option)), "missing audio option {option}");
+    }
     let options = request["options"].as_array().unwrap();
     for option in [
         "new_display=1280x720",
@@ -192,6 +209,16 @@ async fn failed_start_releases_control_and_allows_retry() {
         .unwrap();
     assert!(running.0.await.unwrap().success);
     assert!(!native.host.has_control("device"));
+}
+
+#[tokio::test]
+async fn physical_screen_dimensions_are_read_before_opening_the_window() {
+    let native = Native::new();
+    let running = native.host.start("device".into(), install(), spec(), Vec::new()).await.unwrap();
+    assert_eq!(native.request("shell")["command"], crate::core::device::display::DISPLAY_DUMP_COMMAND);
+    let request = native.request("startSession");
+    assert_eq!((request["screenWidth"].as_u64(), request["screenHeight"].as_u64()), (Some(1080), Some(2520)));
+    assert!(running.0.await.unwrap().success);
 }
 
 #[tokio::test]

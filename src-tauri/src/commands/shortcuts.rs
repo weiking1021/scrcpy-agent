@@ -6,13 +6,12 @@ use crate::core::error::CoreError;
 #[cfg(not(target_os = "android"))]
 use crate::core::integration::file_manager_menu::data_home;
 use crate::core::integration::shortcuts::{
-    ShortcutKind, ShortcutPlace, ShortcutRecord, ShortcutRecords, arguments, display_name, file_name,
+    ShortcutKind, ShortcutPlace, ShortcutRecord, ShortcutRecords, ShortcutState, arguments, display_name, file_name,
 };
 use crate::core::store;
 #[cfg(not(target_os = "android"))]
 use crate::core::window::layout::Os;
 use crate::shell_menu;
-use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, State};
 
@@ -31,9 +30,6 @@ pub struct ShortcutPlaces {
 }
 
 impl ShortcutPlaces {
-    #[cfg(target_os = "android")]
-    pub fn of_user<R: tauri::Runtime>(_app: &AppHandle<R>) -> Option<Self> { None }
-
     /// The folders of the user on this system; `None` where there are none.
     #[cfg(not(target_os = "android"))]
     pub fn of_user<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<Self> {
@@ -142,13 +138,6 @@ fn shortcut_target(
     };
     let app = core.apps().app_name(device, package);
     Ok(ShortcutTarget { folder, file_name: file_name(&app, &shown, places.kind), display_name: display_name(&app, &shown) })
-}
-
-/// Which places have a shortcut of an app now.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-pub struct ShortcutState {
-    pub desktop: bool,
-    pub start_menu: bool,
 }
 
 #[tauri::command]

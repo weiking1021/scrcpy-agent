@@ -56,6 +56,14 @@ impl ScrcpyProtocol for V5 {
         Ok(vec!["list_apps=true".into(), "cleanup=true".into()])
     }
 
+    fn audio_server_options(&self) -> Result<Vec<String>, ProtocolError> {
+        Ok([
+            "tunnel_forward=true", "video=false", "audio=true", "control=false",
+            "audio_codec=raw", "audio_source=playback", "send_dummy_byte=false",
+            "send_device_meta=false", "send_stream_meta=true", "send_frame_meta=true", "cleanup=true",
+        ].into_iter().map(String::from).collect())
+    }
+
     fn supported_versions(&self) -> &'static [ScrcpyVersion] {
         &CHECKED
     }

@@ -14,27 +14,28 @@ import android.widget.TextView;
 import org.json.JSONObject;
 
 /** A resizable native surface for one shared-core session. Window chrome belongs to Android. */
-public final class MirrorActivity extends Activity implements SurfaceHolder.Callback {
+public class MirrorActivity extends Activity implements SurfaceHolder.Callback {
     private ScrcpySessions.Entry entry;
     private SurfaceView video;
     private TextView status;
     private int videoWidth, videoHeight;
+    private MirrorWindow presentation;
 
     @Override public void onCreate(Bundle state) {
-        super.onCreate(state);
         try { entry = ScrcpySessions.get(getIntent().getStringExtra("sessionKey")); }
-        catch (Exception error) { finishAndRemoveTask(); return; }
+        catch (Exception error) { super.onCreate(state); finishAndRemoveTask(); return; }
+        if (entry.ended.isDone()) { super.onCreate(state); finishAndRemoveTask(); return; }
+        super.onCreate(state);
         entry.activity = this;
+        videoWidth = entry.videoWidth; videoHeight = entry.videoHeight;
         setTitle(entry.request.optString("title"));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setDecorFitsSystemWindows(false);
         var frame = new FrameLayout(this);
         frame.setBackgroundColor(android.graphics.Color.BLACK);
-        frame.setOnApplyWindowInsetsListener((view, insets) -> {
-            var bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            return WindowInsets.CONSUMED;
-        });
+        int padding = entry.paddingPx(this);
+        frame.setPadding(0, padding, 0, padding);
+        frame.setOnApplyWindowInsetsListener((view, insets) -> WindowInsets.CONSUMED);
         video = new SurfaceView(this) {
             @Override public boolean onTouchEvent(MotionEvent event) {
                 if (event.getActionMasked() == MotionEvent.ACTION_UP) performClick();
@@ -50,7 +51,9 @@ public final class MirrorActivity extends Activity implements SurfaceHolder.Call
         status.setGravity(Gravity.CENTER);
         status.setText(R.string.connecting);
         frame.addView(status, new FrameLayout.LayoutParams(-1, -1));
-        setContentView(frame);
+        presentation = new MirrorWindow(this, entry, frame);
+        presentation.show();
+        if (entry.ready.isDone()) status.setVisibility(View.GONE);
     }
 
     private boolean touch(MotionEvent event) {
@@ -101,33 +104,62 @@ public final class MirrorActivity extends Activity implements SurfaceHolder.Call
             }
             return;
         }
-        entry.session = new MirrorSession(this, holder.getSurface(), new MirrorSession.Listener() {
-            public void started() {
-                entry.ready.complete(new JSONObject());
-                runOnUiThread(() -> status.setVisibility(View.GONE));
-            }
-            public void size(int width, int height) { runOnUiThread(() -> {
-                videoWidth = width; videoHeight = height; fit((FrameLayout)video.getParent());
-            }); }
-            public void failed(Exception error) { entry.end(error); runOnUiThread(MirrorActivity.this::finishAndRemoveTask); }
-        }, entry.request);
+        var active = entry;
+        entry.session = new MirrorSession(getApplicationContext(), holder.getSurface(), new SessionListener(active), active.request);
         new Thread(() -> {
             try {
-                var address = DeviceBackend.endpoint(entry.request.getString("serial"));
-                entry.session.run(address[0], Integer.parseInt(address[1]));
-                entry.end(null);
-            } catch (Exception error) { entry.end(error); }
-            runOnUiThread(this::finishAndRemoveTask);
+                var address = DeviceBackend.endpoint(active.request.getString("serial"));
+                active.session.run(address[0], Integer.parseInt(address[1]));
+                active.end(null);
+            } catch (Exception error) { active.end(error); }
+            active.ui(MirrorActivity::finishAndRemoveTask);
         }, "scrcpy-video").start();
     }
 
+    private static final class SessionListener implements MirrorSession.Listener {
+        private final ScrcpySessions.Entry entry;
+        SessionListener(ScrcpySessions.Entry entry) { this.entry = entry; }
+        public void started() {
+            entry.ready.complete(new JSONObject());
+            entry.ui(window -> window.status.setVisibility(View.GONE));
+        }
+        public void size(int width, int height) {
+            entry.videoWidth = width; entry.videoHeight = height;
+            entry.ui(window -> window.videoSize(width, height));
+        }
+        public void failed(Exception error) { entry.end(error); entry.ui(MirrorActivity::finishAndRemoveTask); }
+    }
+
+    private void videoSize(int width, int height) {
+        videoWidth = width; videoHeight = height;
+        presentation.size(width, height);
+        fit((FrameLayout)video.getParent());
+    }
+
     @Override public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
-    @Override public void surfaceDestroyed(SurfaceHolder holder) { if (entry != null && entry.session != null) entry.session.setSurface(null); }
+    @Override public void onConfigurationChanged(android.content.res.Configuration configuration) {
+        super.onConfigurationChanged(configuration);
+        if (presentation != null && videoWidth > 0 && videoHeight > 0) {
+            video.post(() -> {
+                if (!isFinishing() && !isDestroyed()) presentation.size(videoWidth, videoHeight);
+            });
+        }
+    }
+    @Override public void surfaceDestroyed(SurfaceHolder holder) {
+        if (entry != null && entry.activity == this && entry.session != null) entry.session.setSurface(null);
+    }
+    @Override protected void onActivityResult(int request, int result, android.content.Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request == MirrorWindow.OVERLAY_PERMISSION && presentation != null) presentation.overlayResult();
+    }
     @Override protected void onDestroy() {
+        if (presentation != null) presentation.close();
         if (entry != null) {
-            if (entry.session != null) entry.session.stop();
-            entry.activity = null;
-            entry.end(null);
+            if (entry.activity == this) entry.activity = null;
+            if (!isChangingConfigurations()) {
+                if (entry.session != null) entry.session.stop();
+                entry.end(null);
+            }
         }
         super.onDestroy();
     }
